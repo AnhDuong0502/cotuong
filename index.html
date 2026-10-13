@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cờ Tướng - Xiangqi Web Game</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Top App Navigation -->
+  <header class="app-header">
+    <div class="logo-area">
+      <div class="logo-icon">帥</div>
+      <div class="logo-text">
+        <h1>Cờ Tướng Việt Nam</h1>
+        <span>Xiangqi Master Edition</span>
+      </div>
+    </div>
+
+    <!-- Quick Switch Panic / Boss Key Header Button -->
+    <div class="header-actions">
+      <button id="btn-quick-switch" class="btn-quick-switch" title="Chuyển nhanh sang giao diện khác (Phím tắt: Esc hoặc Q)">
+        <span class="icon">⚡</span>
+        <span class="btn-text">Chuyển Giao Diện</span>
+        <span class="hotkey-badge">Esc / Q</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="main-wrapper">
+    <div class="views-container">
+
+      <!-- ================= 1. CHESS GAME VIEW ================= -->
+      <section id="view-chess" class="view-panel active">
+        <div class="chess-layout">
+
+          <!-- Left Info Column -->
+          <div class="side-card">
+            <h2 class="card-title">
+              <span>🎯</span> Trạng Thái Ván Đấu
+            </h2>
+
+            <div class="turn-box">
+              <div class="turn-player">
+                <span id="player-indicator" class="player-dot red"></span>
+                <span id="player-turn-text">Lượt Đỏ (Đi trước)</span>
+              </div>
+              <div id="turn-badge" class="turn-status-badge">Đến lượt bạn</div>
+            </div>
+
+            <!-- Check Alert -->
+            <div id="check-alert" class="check-alert">
+              ⚡ CHIẾU TƯỚNG!
+            </div>
+
+            <!-- Captured Pieces -->
+            <div class="captured-tray">
+              <div class="captured-label">Quân Đỏ Đã Bắt:</div>
+              <div id="captured-by-red" class="captured-list"></div>
+            </div>
+
+            <div class="captured-tray">
+              <div class="captured-label">Quân Đen Đã Bắt:</div>
+              <div id="captured-by-black" class="captured-list"></div>
+            </div>
+
+            <div class="card-title" style="margin-top: 8px;">
+              <span>📜</span> Lịch Sử Nước Đi
+            </div>
+            <div id="history-box" class="history-box">
+              <div class="history-item" style="color: var(--text-muted); justify-content: center;">
+                Chưa có nước đi nào
+              </div>
+            </div>
+          </div>
+
+          <!-- Center Board Column -->
+          <div class="board-container">
+            <div class="board-wrapper" id="board-wrapper">
+              <!-- SVG Grid for Chinese Chess -->
+              <svg class="board-svg" viewBox="0 0 540 600" xmlns="http://www.w3.org/2000/svg">
+                <!-- Outer Border -->
+                <rect x="26" y="26" width="488" height="548" fill="none" stroke="var(--board-line)" stroke-width="3" />
+
+                <!-- 10 Horizontal Lines -->
+                <!-- Spacing: x: 30 to 510 (480px / 8 = 60px), y: 30 to 570 (540px / 9 = 60px) -->
+                <line x1="30" y1="30" x2="510" y2="30" />
+                <line x1="30" y1="90" x2="510" y2="90" />
+                <line x1="30" y1="150" x2="510" y2="150" />
+                <line x1="30" y1="210" x2="510" y2="210" />
+                <line x1="30" y1="270" x2="510" y2="270" />
+                
+                <line x1="30" y1="330" x2="510" y2="330" />
+                <line x1="30" y1="390" x2="510" y2="390" />
+                <line x1="30" y1="450" x2="510" y2="450" />
+                <line x1="30" y1="510" x2="510" y2="510" />
+                <line x1="30" y1="570" x2="510" y2="570" />
+
+                <!-- Vertical Lines (Outer continuous, inner broken by river) -->
+                <!-- Edge cols -->
+                <line x1="30" y1="30" x2="30" y2="570" />
+                <line x1="510" y1="30" x2="510" y2="570" />
+
+                <!-- Inner cols (Black side: y 30 -> 270) -->
+                <line x1="90" y1="30" x2="90" y2="270" />
+                <line x1="150" y1="30" x2="150" y2="270" />
+                <line x1="210" y1="30" x2="210" y2="270" />
+                <line x1="270" y1="30" x2="270" y2="270" />
+                <line x1="330" y1="30" x2="330" y2="270" />
+                <line x1="390" y1="30" x2="390" y2="270" />
+                <line x1="450" y1="30" x2="450" y2="270" />
+
+                <!-- Inner cols (Red side: y 330 -> 570) -->
+                <line x1="90" y1="330" x2="90" y2="570" />
+                <line x1="150" y1="330" x2="150" y2="570" />
+                <line x1="210" y1="330" x2="210" y2="570" />
+                <line x1="270" y1="330" x2="270" y2="570" />
+                <line x1="330" y1="330" x2="330" y2="570" />
+                <line x1="390" y1="330" x2="390" y2="570" />
+                <line x1="450" y1="330" x2="450" y2="570" />
+
+                <!-- Black Palace Diagonals (cols 3..5 = x 210..330, rows 0..2 = y 30..150) -->
+                <line x1="210" y1="30" x2="330" y2="150" class="palace-line" />
+                <line x1="330" y1="30" x2="210" y2="150" class="palace-line" />
+
+                <!-- Red Palace Diagonals (cols 3..5 = x 210..330, rows 7..9 = y 450..570) -->
+                <line x1="210" y1="450" x2="330" y2="570" class="palace-line" />
+                <line x1="330" y1="450" x2="210" y2="570" class="palace-line" />
+
+                <!-- River Calligraphy -->
+                <text x="150" y="303" class="river-text-svg">楚 河</text>
+                <text x="390" y="303" class="river-text-svg">漢 界</text>
+              </svg>
+
+              <!-- Pieces & Move Markers Overlay -->
+              <div id="board-interactive" class="board-interactive"></div>
+            </div>
+          </div>
+
+          <!-- Right Options Column -->
+          <div class="side-card">
+            <h2 class="card-title">
+              <span>⚙️</span> Cài Đặt & Điều Khiển
+            </h2>
+
+            <div class="control-group">
+              <label for="select-mode">Chế Độ Chơi:</label>
+              <select id="select-mode" class="select-control">
+                <option value="lan" selected>Chơi Cùng Mạng LAN / Wi-Fi 🌐</option>
+                <option value="pve">Đấu Với Máy (AI)</option>
+                <option value="pvp">Hai Người Chơi (Cùng máy)</option>
+              </select>
+            </div>
+
+            <!-- LAN Room Management Panel -->
+            <div id="lan-panel" class="lan-panel">
+              <div class="lan-ip-card">
+                <div class="lan-ip-label">📡 Link kết nối (Dùng cho người cùng Wi-Fi):</div>
+                <div class="lan-ip-url" id="lan-url-display">http://192.168.4.196:8080</div>
+                <button id="btn-copy-lan-link" class="btn-copy-lan">
+                  📋 Sao chép link gửi bạn
+                </button>
+              </div>
+
+              <div class="lan-room-actions">
+                <button id="btn-create-room" class="btn-lan-action primary">
+                  🏠 Tạo Phòng Mới
+                </button>
+                <div class="lan-join-box">
+                  <input type="text" id="input-room-code" placeholder="Mã 4 số (vd: 1234)" maxlength="6" class="lan-input">
+                  <button id="btn-join-room" class="btn-lan-action">
+                    Vào Phòng
+                  </button>
+                </div>
+              </div>
+
+              <div id="lan-status-banner" class="lan-status-banner">
+                Chưa vào phòng. Hãy tạo phòng hoặc nhập mã phòng để đấu với bạn bè.
+              </div>
+            </div>
+
+            <div class="control-group" id="ai-diff-group" style="display: none;">
+              <label for="select-ai-diff">Độ Khó Máy:</label>
+              <select id="select-ai-diff" class="select-control">
+                <option value="easy">Dễ (Tập sự)</option>
+                <option value="medium" selected>Trung Bình (Tiêu chuẩn)</option>
+              </select>
+            </div>
+
+            <div class="control-group">
+              <label for="select-names">Hiển Thị Quân Cờ:</label>
+              <select id="select-names" class="select-control">
+                <option value="traditional" selected>Chữ Hán Truyền Thống (帥, 將, 俥...)</option>
+                <option value="vietnamese">Tiếng Việt (Tướng, Xe, Pháo...)</option>
+              </select>
+            </div>
+
+            <div class="control-group">
+              <label for="select-theme">Giao Diện Bàn Cờ:</label>
+              <select id="select-theme" class="select-control">
+                <option value="classic" selected>Gỗ Hoàng Đàn (Cổ Điển)</option>
+                <option value="jade">Thạch Ngọc Bích</option>
+                <option value="modern">Tối Giản Đêm (Modern Dark)</option>
+              </select>
+            </div>
+
+            <div class="action-buttons" style="margin-top: 8px;">
+              <button id="btn-new-game" class="btn-game primary">
+                ⚔️ Ván Mới
+              </button>
+              <button id="btn-flip-board" class="btn-game" title="Xoay ngược chiều bàn cờ">
+                🔄 Xoay Bàn Cờ
+              </button>
+              <button id="btn-undo" class="btn-game">
+                ↩️ Đi Lại
+              </button>
+              <button id="btn-sound" class="btn-game">
+                🔊 Âm Thanh: Bật
+              </button>
+            </div>
+
+            <div style="margin-top: 10px; padding: 12px; background: rgba(15, 23, 42, 0.4); border-radius: 8px; font-size: 0.8rem; color: var(--text-muted); line-height: 1.5;">
+              <strong style="color: var(--accent-gold);">⚡ Phím tắt nhanh:</strong><br>
+              • <kbd style="background:#334155; padding:2px 5px; border-radius:3px;">Esc</kbd> hoặc <kbd style="background:#334155; padding:2px 5px; border-radius:3px;">Q</kbd>: Chuyển nhanh sang giao diện khác<br>
+              • <kbd style="background:#334155; padding:2px 5px; border-radius:3px;">F</kbd>: Xoay ngược bàn cờ (Flip board)<br>
+              • <kbd style="background:#334155; padding:2px 5px; border-radius:3px;">Z</kbd>: Đi lại nước cờ (Undo)<br>
+              • <kbd style="background:#334155; padding:2px 5px; border-radius:3px;">N</kbd>: Bắt đầu ván mới
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ================= 2. ALTERNATE INTERFACE VIEW (ẢNH GỐC RIKKEI EDU) ================= -->
+      <section id="view-alternate" class="view-panel">
+        <div class="pure-white-wrapper" id="alternate-image-container" title="Bấm vào đây hoặc nhấn phím Esc/Q để quay lại bàn cờ">
+          <img src="rikkei_portal.png" alt="Rikkei Edu Portal" class="portal-raw-img" id="portal-img-trigger">
+        </div>
+      </section>
+
+
+    </div>
+  </main>
+
+  <!-- Floating Quick Switch Button -->
+  <button id="floating-quick-switch" class="floating-quick-switch" title="Chuyển nhanh giao diện khác (Phím tắt: Esc / Q)">
+    <span id="floating-btn-icon">⚡</span>
+    <span id="floating-btn-text">Chuyển Giao Diện (Esc)</span>
+  </button>
+
+  <!-- Game Over Modal -->
+  <div id="modal-gameover" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-trophy">🏆</div>
+      <h2 id="modal-winner-title">Chiến Thắng!</h2>
+      <p id="modal-winner-desc">Chúc mừng người chiến thắng ván cờ!</p>
+      <button id="btn-modal-restart" class="btn-game primary">
+        🔄 Bắt Đầu Ván Mới
+      </button>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="peerjs.min.js"></script>
+  <script src="audio.js"></script>
+  <script src="game.js"></script>
+  <script src="ai.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
