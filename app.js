@@ -923,6 +923,89 @@ document.addEventListener('DOMContentLoaded', () => {
   // Start 1-second interval loop
   clockInterval = setInterval(handleClockTick, 1000);
 
+  // ================= SPACEBAR MOVE CONFIRMATION LOGIC =================
+  let pendingMove = null;
+  const moveConfirmBanner = document.getElementById('move-confirm-banner');
+  const btnConfirmMove = document.getElementById('btn-confirm-move');
+  const btnCancelMove = document.getElementById('btn-cancel-move');
+
+  function stagePendingMove(from, to) {
+    if (isAiThinking || isMatchPaused || game.isGameOver) return;
+
+    if (pendingMove) {
+      cancelPendingMove(false);
+    }
+
+    const piece = game.board[from.r][from.c];
+    if (!piece) return;
+    const target = game.board[to.r][to.c];
+
+    pendingMove = {
+      from: { r: from.r, c: from.c },
+      to: { r: to.r, c: to.c },
+      piece: piece,
+      target: target
+    };
+
+    // Temporarily place on board to preview the move
+    game.board[to.r][to.c] = piece;
+    game.board[from.r][from.c] = null;
+    game.selected = null;
+    game.validMoves = [];
+
+    if (moveConfirmBanner) {
+      moveConfirmBanner.classList.add('show');
+    }
+
+    renderBoard();
+  }
+
+  function confirmPendingMove() {
+    if (!pendingMove) return;
+
+    const { from, to, piece, target } = pendingMove;
+    game.board[from.r][from.c] = piece;
+    game.board[to.r][to.c] = target;
+    pendingMove = null;
+
+    if (moveConfirmBanner) {
+      moveConfirmBanner.classList.remove('show');
+    }
+
+    executeMove(from, to);
+  }
+
+  function cancelPendingMove(rerender = true) {
+    if (!pendingMove) return;
+
+    const { from, to, piece, target } = pendingMove;
+    game.board[from.r][from.c] = piece;
+    game.board[to.r][to.c] = target;
+    pendingMove = null;
+
+    if (moveConfirmBanner) {
+      moveConfirmBanner.classList.remove('show');
+    }
+
+    if (rerender) {
+      renderBoard();
+    }
+  }
+
+  if (btnConfirmMove) {
+    btnConfirmMove.addEventListener('click', (e) => {
+      e.stopPropagation();
+      confirmPendingMove();
+    });
+  }
+
+  if (btnCancelMove) {
+    btnCancelMove.addEventListener('click', (e) => {
+      e.stopPropagation();
+      cancelPendingMove();
+    });
+  }
+
   // Render board pieces and markers
   function renderBoard() {
     boardInteractive.innerHTML = '';
@@ -937,6 +1020,9 @@ document.addEventListener('DOMContentLoaded', () => {
         pieceEl.className = `piece ${piece.color} ${game.namingStyle}`;
         if (game.selected && game.selected.r === r && game.selected.c === c) {
           pieceEl.classList.add('selected');
+        }
+        if (pendingMove && pendingMove.to.r === r && pendingMove.to.c === c) {
+          pieceEl.classList.add('pending-move-piece');
         }
 
         pieceEl.style.left = `${(c / 8) * 100}%`;
@@ -974,7 +1060,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         marker.addEventListener('click', (e) => {
           e.stopPropagation();
-          executeMove(game.selected, m);
+          stagePendingMove(game.selected, m);
         });
 
         boardInteractive.appendChild(marker);
@@ -1014,6 +1100,16 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    // If there is an active pending move and user clicks the pending piece, confirm it!
+    if (pendingMove) {
+      if (pendingMove.to.r === r && pendingMove.to.c === c) {
+        confirmPendingMove();
+        return;
+      } else {
+        cancelPendingMove(false);
+      }
+    }
+
     const piece = game.board[r][c];
     if (!piece) return;
 
@@ -1051,7 +1147,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Possible capture target clicked directly
       const isTarget = game.validMoves.some(m => m.r === r && m.c === c);
       if (isTarget) {
-        executeMove(game.selected, { r, c });
+        stagePendingMove(game.selected, { r, c });
       }
     }
   }
@@ -1246,13 +1342,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Keyboard Shortcuts
   document.addEventListener('keydown', (e) => {
-    // Quick switch with Escape or 'Q'
+    // Space key to confirm pending move
+    if (e.code === 'Space' || e.key === ' ') {
+      if (pendingMove) {
+        e.preventDefault();
+        confirmPendingMove();
+        return;
+      }
+    }
+
+    // Quick switch with Escape or 'Q', or cancel pending move
     if (e.key === 'Escape' || e.key.toLowerCase() === 'q') {
+      if (pendingMove) {
+        e.preventDefault();
+        cancelPendingMove();
+        return;
+      }
       e.preventDefault();
       toggleView();
     } else if (e.key.toLowerCase() === 'z' && activeView === 'chess') {
+      if (pendingMove) cancelPendingMove();
       handleUndo();
     } else if (e.key.toLowerCase() === 'n' && activeView === 'chess') {
+      if (pendingMove) cancelPendingMove();
       startNewGame();
     } else if (e.key.toLowerCase() === 'f' && activeView === 'chess') {
       toggleBoardFlip();
