@@ -50,7 +50,8 @@
                 <span id="player-indicator" class="player-dot red"></span>
                 <span id="player-turn-text">Lượt Đỏ (Đi trước)</span>
               </div>
-              <div id="turn-badge" class="turn-status-badge">Đến lượt bạn</div>
+              <div id="turn-badge" class="turn-status-badge">Sẵn sàng</div>
+              <button id="btn-quick-start" class="btn-quick-start" title="Nhấn để bắt đầu ván cờ">▶️ Bắt Đầu Ván Đấu</button>
             </div>
 
             <!-- Check Alert -->
@@ -213,14 +214,14 @@
             <div class="control-group">
               <label for="select-mode">Chế Độ Chơi:</label>
               <select id="select-mode" class="select-control">
-                <option value="lan" selected>Chơi Cùng Mạng LAN / Wi-Fi 🌐</option>
-                <option value="pve">Đấu Với Máy (AI)</option>
-                <option value="pvp">Hai Người Chơi (Cùng máy)</option>
+                <option value="pve" selected>Đấu Với Máy (AI) 🤖</option>
+                <option value="pvp">Hai Người Chơi (Cùng máy) 👥</option>
+                <option value="lan">Chơi Cùng Mạng LAN / Wi-Fi 🌐</option>
               </select>
             </div>
 
             <!-- LAN Room Management Panel -->
-            <div id="lan-panel" class="lan-panel">
+            <div id="lan-panel" class="lan-panel" style="display: none;">
               <div class="lan-ip-card">
                 <div class="lan-ip-label">📡 Link kết nối (Dùng cho người cùng Wi-Fi):</div>
                 <div class="lan-ip-url" id="lan-url-display">http://localhost:8080</div>
@@ -326,7 +327,13 @@
                   🎲 <strong>Cơ chế tự động:</strong> Khi bắt đầu, hệ thống sẽ <strong>random ngẫu nhiên</strong> phe Đỏ và phe Đen giữa 2 kỳ thủ!
                 </div>
 
-                <!-- Referee Start Match Action Button -->
+                <!-- Start Match Buttons for LAN Lobby -->
+                <div id="lan-room-start-box" style="margin-top:10px;">
+                  <button id="btn-lan-start-match" class="btn-lan-action primary pulse-animation" style="width: 100%; font-size: 0.95rem; font-weight: 700; padding: 11px;">
+                    🎬 Bắt Đầu Trận Đấu Ngay
+                  </button>
+                </div>
+
                 <div id="referee-start-box" style="display:none; margin-top:8px;">
                   <button id="btn-referee-start" class="btn-lan-action primary pulse-animation">
                     🎬 Trọng Tài: Bắt Đầu Trận Đấu (Random Phe)
@@ -369,7 +376,7 @@
               </div>
             </div>
 
-            <div class="control-group" id="ai-diff-group" style="display: none;">
+            <div class="control-group" id="ai-diff-group" style="display: flex;">
               <label for="select-ai-diff">Độ Khó Máy:</label>
               <select id="select-ai-diff" class="select-control">
                 <option value="easy">Dễ (Tập sự)</option>
@@ -443,13 +450,16 @@
             </div>
 
             <div class="action-buttons" style="margin-top: 8px;">
+              <button id="btn-start-game" class="btn-game btn-start-game pulse-animation" title="Bắt đầu ván đấu ngay (Phím tắt: S)">
+                ▶️ BẮT ĐẦU VÁN ĐẤU
+              </button>
               <button id="btn-new-game" class="btn-game primary">
                 ⚔️ Ván Mới
               </button>
-              <button id="btn-flip-board" class="btn-game" title="Xoay ngược chiều bàn cờ">
+              <button id="btn-flip-board" class="btn-game" title="Xoay ngược chiều bàn cờ (F)">
                 🔄 Xoay Bàn Cờ
               </button>
-              <button id="btn-undo" class="btn-game">
+              <button id="btn-undo" class="btn-game" title="Xin đi lại nước trước (Z)">
                 ↩️ Đi Lại
               </button>
               <button id="btn-sound" class="btn-game">
@@ -459,10 +469,11 @@
 
             <div style="margin-top: 10px; padding: 12px; background: rgba(15, 23, 42, 0.4); border-radius: 8px; font-size: 0.8rem; color: var(--text-muted); line-height: 1.5;">
               <strong style="color: var(--accent-gold);">⚡ Phím tắt nhanh:</strong><br>
+              • <kbd style="background:#334155; padding:2px 5px; border-radius:3px;">S</kbd>: Bắt đầu ván đấu (Start game)<br>
               • <kbd style="background:#334155; padding:2px 5px; border-radius:3px;">Esc</kbd> hoặc <kbd style="background:#334155; padding:2px 5px; border-radius:3px;">Q</kbd>: Chuyển nhanh sang giao diện khác<br>
               • <kbd style="background:#334155; padding:2px 5px; border-radius:3px;">F</kbd>: Xoay ngược bàn cờ (Flip board)<br>
               • <kbd style="background:#334155; padding:2px 5px; border-radius:3px;">Z</kbd>: Đi lại nước cờ (Undo)<br>
-              • <kbd style="background:#334155; padding:2px 5px; border-radius:3px;">N</kbd>: Bắt đầu ván mới
+              • <kbd style="background:#334155; padding:2px 5px; border-radius:3px;">N</kbd>: Ván mới (New game)
             </div>
           </div>
 
