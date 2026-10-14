@@ -919,3 +919,839 @@ body {
   color: var(--text-muted);
   font-size: 0.95rem;
 }
+
+/* ================= TOURNAMENT ROOM & REFEREE STYLES ================= */
+
+/* Room Type Tabs */
+.room-type-tabs {
+  display: flex;
+  gap: 6px;
+  background: rgba(15, 23, 42, 0.7);
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.tab-btn {
+  flex: 1;
+  background: transparent;
+  color: #94a3b8;
+  border: none;
+  padding: 7px 8px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.tab-btn:hover {
+  color: #f8fafc;
+}
+
+.tab-btn.active {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #0f172a;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+}
+
+/* Creator & Join Role Choice */
+.creator-role-group, .join-role-select {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 4px;
+}
+
+.role-group-label {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.radio-pill-group {
+  display: flex;
+  gap: 8px;
+}
+
+.radio-pill {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  padding: 6px 8px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #cbd5e1;
+  transition: all 0.15s ease;
+}
+
+.radio-pill input[type="radio"] {
+  display: none;
+}
+
+.radio-pill:has(input[type="radio"]:checked) {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: #38bdf8;
+  color: #38bdf8;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+}
+
+.radio-pill-group.mini .radio-pill {
+  padding: 4px 6px;
+  font-size: 0.75rem;
+}
+
+.join-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 6px 0;
+  color: rgba(255, 255, 255, 0.25);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.join-divider::before, .join-divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.join-divider span {
+  padding: 0 8px;
+}
+
+.join-form-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(30, 41, 59, 0.4);
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Active Room View */
+.lan-active-room {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.active-room-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.room-type-badge {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border: 1px solid #f59e0b;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+.room-id-tag {
+  font-size: 0.85rem;
+  color: #f8fafc;
+  margin-left: 6px;
+}
+
+.btn-leave-room {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-leave-room:hover {
+  background: #ef4444;
+  color: white;
+}
+
+/* Room Slots List */
+.room-slots-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.slot-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 8px 10px;
+  transition: all 0.2s ease;
+}
+
+.slot-item.filled {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.slot-icon {
+  font-size: 1.1rem;
+}
+
+.slot-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.slot-name {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.slot-status {
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+
+.slot-item.filled .slot-status {
+  color: #34d399;
+  font-weight: 600;
+}
+
+.random-rule-tip {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px dashed rgba(245, 158, 11, 0.4);
+  border-radius: 6px;
+  padding: 8px;
+  font-size: 0.75rem;
+  color: #fbbf24;
+  line-height: 1.4;
+}
+
+.pulse-animation {
+  animation: pulse-glow 1.5s infinite alternate;
+}
+
+@keyframes pulse-glow {
+  0% { box-shadow: 0 0 5px rgba(14, 165, 233, 0.4); }
+  100% { box-shadow: 0 0 16px rgba(14, 165, 233, 0.9); transform: scale(1.02); }
+}
+
+/* Referee In-Game Control Panel */
+.referee-control-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95));
+  border: 1px solid #f59e0b;
+  border-radius: 10px;
+  padding: 12px;
+  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.15);
+}
+
+.referee-panel-header {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #f59e0b;
+  letter-spacing: 0.5px;
+  text-align: center;
+  border-bottom: 1px solid rgba(245, 158, 11, 0.2);
+  padding-bottom: 5px;
+}
+
+.referee-actions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.btn-ref-action {
+  border: none;
+  padding: 8px 6px;
+  border-radius: 6px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.btn-ref-action.pause {
+  background: #f59e0b;
+  color: #0f172a;
+}
+.btn-ref-action.pause:hover {
+  background: #fbbf24;
+}
+
+.btn-ref-action.win-red {
+  background: rgba(239, 68, 68, 0.25);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.5);
+}
+.btn-ref-action.win-red:hover {
+  background: #ef4444;
+  color: #fff;
+}
+
+.btn-ref-action.win-black {
+  background: rgba(255, 255, 255, 0.15);
+  color: #cbd5e1;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+.btn-ref-action.win-black:hover {
+  background: #475569;
+  color: #fff;
+}
+
+.btn-ref-action.draw {
+  background: rgba(56, 189, 248, 0.2);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+}
+.btn-ref-action.draw:hover {
+  background: #0284c7;
+  color: #fff;
+}
+
+.referee-msg-box {
+  display: flex;
+  gap: 6px;
+}
+
+.referee-quick-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.quick-pill {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #94a3b8;
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.quick-pill:hover {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border-color: #f59e0b;
+}
+
+/* Pause Overlay on Chessboard */
+.board-pause-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(4px);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  border-radius: 12px;
+}
+
+.board-pause-overlay.active {
+  display: flex;
+}
+
+.pause-box {
+  background: #1e293b;
+  border: 2px solid #f59e0b;
+  border-radius: 16px;
+  padding: 24px 32px;
+  text-align: center;
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.6);
+  animation: bounce-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.pause-icon {
+  font-size: 36px;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.pause-box h3 {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #f59e0b;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.pause-box p {
+  color: #cbd5e1;
+  font-size: 0.85rem;
+}
+
+/* Game Toast Banner */
+.game-toast {
+  position: absolute;
+  top: 15px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-30px);
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid #38bdf8;
+  color: #f8fafc;
+  padding: 10px 20px;
+  border-radius: 30px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  z-index: 60;
+  white-space: nowrap;
+}
+
+.game-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.game-toast.gold {
+  border-color: #f59e0b;
+  color: #fbbf24;
+}
+
+.game-toast.red {
+  border-color: #ef4444;
+  color: #f87171;
+}
+
+.game-toast.green {
+  border-color: #10b981;
+  color: #34d399;
+}
+
+/* =========================================================
+   CHESS CLOCK / TIMER COMPONENT STYLES
+   ========================================================= */
+
+.clock-bar {
+  width: 540px;
+  max-width: 100%;
+  background: rgba(30, 41, 59, 0.92);
+  backdrop-filter: blur(10px);
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+  padding: 8px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  transition: all 0.25s ease;
+  user-select: none;
+}
+
+@media (max-width: 580px) {
+  .clock-bar {
+    width: 360px;
+    padding: 6px 10px;
+  }
+}
+
+/* Board container layout with clocks */
+.board-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+#clock-bar-black {
+  order: 1;
+}
+
+.board-wrapper {
+  order: 2;
+}
+
+#clock-bar-red {
+  order: 3;
+}
+
+/* Flipped board order: Red moves to top, Black moves to bottom */
+.board-container.flipped #clock-bar-red {
+  order: 1;
+}
+
+.board-container.flipped #clock-bar-black {
+  order: 3;
+}
+
+/* Clock Player Info */
+.clock-player-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.clock-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  font-weight: 800;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.clock-avatar.red {
+  background: radial-gradient(circle at 35% 30%, #fff7f2 0%, #ffe0d3 40%, #ebbfaf 100%);
+  color: #bd1c1c;
+  border: 2px solid #b83828;
+}
+
+.clock-avatar.black {
+  background: radial-gradient(circle at 35% 30%, #ffffff 0%, #ebebeb 40%, #c4c4c4 100%);
+  color: #1e293b;
+  border: 2px solid #334155;
+}
+
+.clock-player-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.clock-player-name {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  line-height: 1.2;
+}
+
+.clock-player-status {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+  display: inline-block;
+  width: fit-content;
+  background: rgba(148, 163, 184, 0.15);
+  color: var(--text-muted);
+}
+
+/* Active Turn States */
+.clock-bar.active-turn {
+  background: rgba(30, 41, 59, 0.98);
+  transform: translateY(-1px);
+}
+
+.clock-bar.red-side.active-turn {
+  border-color: #ef4444;
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.38), 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.clock-bar.red-side.active-turn .clock-player-status {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.clock-bar.red-side.active-turn .clock-main-time {
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.6);
+  text-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+}
+
+.clock-bar.black-side.active-turn {
+  border-color: #38bdf8;
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.38), 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.clock-bar.black-side.active-turn .clock-player-status {
+  background: rgba(56, 189, 248, 0.2);
+  color: #7dd3fc;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.clock-bar.black-side.active-turn .clock-main-time {
+  color: #7dd3fc;
+  border-color: rgba(56, 189, 248, 0.6);
+  text-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+}
+
+.clock-bar.active-turn .clock-avatar {
+  transform: scale(1.08);
+}
+
+/* Inactive Turn State */
+.clock-bar:not(.active-turn) {
+  opacity: 0.72;
+}
+
+/* Paused State */
+.clock-bar.is-paused {
+  border-color: #f59e0b !important;
+  opacity: 0.9 !important;
+}
+
+.clock-bar.is-paused .clock-player-status {
+  background: rgba(245, 158, 11, 0.25) !important;
+  color: #fcd34d !important;
+}
+
+/* Low Time Danger Warning (< 30s) */
+.clock-bar.low-time {
+  border-color: #ef4444 !important;
+  animation: clockAlarmPulse 0.9s infinite alternate;
+}
+
+.clock-bar.low-time .clock-main-time {
+  color: #ef4444 !important;
+  text-shadow: 0 0 14px rgba(239, 68, 68, 0.8) !important;
+}
+
+@keyframes clockAlarmPulse {
+  from {
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.3);
+  }
+  to {
+    box-shadow: 0 0 26px rgba(239, 68, 68, 0.7);
+    border-color: #f87171 !important;
+  }
+}
+
+/* Clock Display Group */
+.clock-display-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.clock-turn-time {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 4px 9px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: 700;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.clock-turn-time .sand-icon {
+  font-size: 0.85rem;
+}
+
+.clock-turn-time.warning {
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.5);
+  background: rgba(239, 68, 68, 0.12);
+  animation: pulse 0.7s infinite alternate;
+}
+
+.clock-main-time {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 1.7rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: #f1f5f9;
+  background: #090e17;
+  padding: 4px 14px;
+  border-radius: 8px;
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  min-width: 98px;
+  text-align: center;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.7);
+  transition: all 0.2s ease;
+}
+
+@media (max-width: 580px) {
+  .clock-main-time {
+    font-size: 1.35rem;
+    min-width: 78px;
+    padding: 3px 8px;
+  }
+  .clock-turn-time {
+    font-size: 0.72rem;
+    padding: 3px 6px;
+  }
+}
+
+/* =========================================================
+   TIMER SETTINGS IN SIDEBAR
+   ========================================================= */
+
+.timer-settings-card {
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.timer-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.timer-card-header label {
+  font-weight: 700;
+  color: #f1f5f9;
+  font-size: 0.84rem;
+}
+
+.timer-status-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 12px;
+  text-transform: uppercase;
+}
+
+.timer-status-badge.running {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.timer-status-badge.paused {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.timer-status-badge.disabled {
+  background: rgba(148, 163, 184, 0.15);
+  color: #94a3b8;
+}
+
+.custom-timer-inputs {
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.custom-timer-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.custom-timer-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.custom-timer-lbl {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.custom-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  padding: 4px 6px;
+}
+
+.custom-input-wrap span {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.mini-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  outline: none;
+}
+
+.timer-controls-row {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 8px;
+}
+
+.btn-timer-ctl {
+  background: #334155;
+  color: #f8fafc;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 7px 10px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.btn-timer-ctl:hover {
+  background: #475569;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.btn-timer-ctl.paused {
+  background: linear-gradient(135deg, #d97706, #b45309);
+  color: #fff;
+  border-color: #f59e0b;
+}
+
+.btn-timer-ctl.reset:hover {
+  background: #4338ca;
+  color: #fff;
+}
+

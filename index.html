@@ -80,7 +80,24 @@
           </div>
 
           <!-- Center Board Column -->
-          <div class="board-container">
+          <div class="board-container" id="board-container">
+            <!-- Top Clock Bar (Black) -->
+            <div id="clock-bar-black" class="clock-bar black-side">
+              <div class="clock-player-info">
+                <div class="clock-avatar black">將</div>
+                <div class="clock-player-meta">
+                  <span class="clock-player-name" id="name-black">Kỳ Thủ Đen</span>
+                  <span class="clock-player-status" id="status-tag-black">Chờ lượt</span>
+                </div>
+              </div>
+              <div class="clock-display-group">
+                <div class="clock-turn-time" id="turntime-black" title="Thời gian nước đi hiện tại">
+                  <span class="sand-icon">⏳</span> <span class="turntime-val" id="turntime-val-black">60s</span>
+                </div>
+                <div class="clock-main-time" id="time-black">10:00</div>
+              </div>
+            </div>
+
             <div class="board-wrapper" id="board-wrapper">
               <!-- SVG Grid for Chinese Chess -->
               <svg class="board-svg" viewBox="0 0 540 600" xmlns="http://www.w3.org/2000/svg">
@@ -139,6 +156,35 @@
 
               <!-- Pieces & Move Markers Overlay -->
               <div id="board-interactive" class="board-interactive"></div>
+
+              <!-- Pause Overlay for Referee -->
+              <div id="board-pause-overlay" class="board-pause-overlay">
+                <div class="pause-box">
+                  <span class="pause-icon">⏸️</span>
+                  <h3>TRẬN ĐẤU TẠM DỪNG</h3>
+                  <p>Trọng tài đang xử lý / hội ý</p>
+                </div>
+              </div>
+
+              <!-- Game Toast Banner for Notifications -->
+              <div id="game-toast" class="game-toast"></div>
+            </div>
+
+            <!-- Bottom Clock Bar (Red) -->
+            <div id="clock-bar-red" class="clock-bar red-side active-turn">
+              <div class="clock-player-info">
+                <div class="clock-avatar red">帥</div>
+                <div class="clock-player-meta">
+                  <span class="clock-player-name" id="name-red">Kỳ Thủ Đỏ</span>
+                  <span class="clock-player-status" id="status-tag-red">Đang đi</span>
+                </div>
+              </div>
+              <div class="clock-display-group">
+                <div class="clock-turn-time" id="turntime-red" title="Thời gian nước đi hiện tại">
+                  <span class="sand-icon">⏳</span> <span class="turntime-val" id="turntime-val-red">60s</span>
+                </div>
+                <div class="clock-main-time" id="time-red">10:00</div>
+              </div>
             </div>
           </div>
 
@@ -161,21 +207,144 @@
             <div id="lan-panel" class="lan-panel">
               <div class="lan-ip-card">
                 <div class="lan-ip-label">📡 Link kết nối (Dùng cho người cùng Wi-Fi):</div>
-                <div class="lan-ip-url" id="lan-url-display">http://192.168.4.196:8080</div>
+                <div class="lan-ip-url" id="lan-url-display">http://localhost:8080</div>
                 <button id="btn-copy-lan-link" class="btn-copy-lan">
                   📋 Sao chép link gửi bạn
                 </button>
               </div>
 
-              <div class="lan-room-actions">
-                <button id="btn-create-room" class="btn-lan-action primary">
-                  🏠 Tạo Phòng Mới
-                </button>
-                <div class="lan-join-box">
-                  <input type="text" id="input-room-code" placeholder="Mã 4 số (vd: 1234)" maxlength="6" class="lan-input">
-                  <button id="btn-join-room" class="btn-lan-action">
-                    Vào Phòng
+              <!-- Setup & Join Forms (Shown when not in a room) -->
+              <div id="lan-setup-section" class="lan-setup-section">
+                <!-- Room Type Selection -->
+                <div class="room-type-tabs">
+                  <button type="button" class="tab-btn active" id="tab-room-tournament">
+                    🏆 Thi Đấu (2 Người + 1 Trọng Tài)
                   </button>
+                  <button type="button" class="tab-btn" id="tab-room-normal">
+                    ⚔️ Thường (2 Người)
+                  </button>
+                </div>
+
+                <!-- Creator Role Choice for Tournament -->
+                <div id="creator-role-group" class="creator-role-group">
+                  <span class="role-group-label">Vai trò của bạn khi tạo phòng:</span>
+                  <div class="radio-pill-group">
+                    <label class="radio-pill">
+                      <input type="radio" name="creator-role" value="referee" checked>
+                      <span>⚖️ Làm Trọng Tài</span>
+                    </label>
+                    <label class="radio-pill">
+                      <input type="radio" name="creator-role" value="player">
+                      <span>🥊 Làm Kỳ Thủ</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="lan-room-actions">
+                  <button id="btn-create-room" class="btn-lan-action primary">
+                    ✨ Tạo Phòng Mới
+                  </button>
+
+                  <div class="join-divider"><span>HOẶC VÀO PHÒNG CÓ SẴN</span></div>
+
+                  <div class="join-form-wrapper">
+                    <div class="join-role-select" id="join-role-wrapper">
+                      <span class="role-group-label">Vào với tư cách:</span>
+                      <div class="radio-pill-group mini">
+                        <label class="radio-pill">
+                          <input type="radio" name="join-role" value="player" checked>
+                          <span>🥊 Kỳ Thủ</span>
+                        </label>
+                        <label class="radio-pill">
+                          <input type="radio" name="join-role" value="referee">
+                          <span>⚖️ Trọng Tài</span>
+                        </label>
+                      </div>
+                    </div>
+                    <div class="lan-join-box">
+                      <input type="text" id="input-room-code" placeholder="Mã 4 số (vd: 1234)" maxlength="6" class="lan-input">
+                      <button id="btn-join-room" class="btn-lan-action">
+                        Vào Phòng
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Active Room Lobby & Status Card (Shown when inside a room) -->
+              <div id="lan-active-room" class="lan-active-room" style="display:none;">
+                <div class="active-room-header">
+                  <div class="room-title-info">
+                    <span id="room-type-badge" class="room-type-badge">🏆 THI ĐẤU</span>
+                    <span class="room-id-tag">Phòng: <strong id="display-room-id">----</strong></span>
+                  </div>
+                  <button id="btn-leave-room" class="btn-leave-room" title="Rời khỏi phòng">🚪 Rời</button>
+                </div>
+
+                <!-- Slots List -->
+                <div class="room-slots-list">
+                  <div class="slot-item" id="slot-player1">
+                    <div class="slot-icon">🥊</div>
+                    <div class="slot-details">
+                      <div class="slot-name">Kỳ thủ 1</div>
+                      <div class="slot-status" id="status-player1">Đang chờ...</div>
+                    </div>
+                  </div>
+                  <div class="slot-item" id="slot-player2">
+                    <div class="slot-icon">🥊</div>
+                    <div class="slot-details">
+                      <div class="slot-name">Kỳ thủ 2</div>
+                      <div class="slot-status" id="status-player2">Đang chờ...</div>
+                    </div>
+                  </div>
+                  <div class="slot-item" id="slot-referee">
+                    <div class="slot-icon">⚖️</div>
+                    <div class="slot-details">
+                      <div class="slot-name">Trọng tài</div>
+                      <div class="slot-status" id="status-referee">Đang chờ...</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="random-rule-tip">
+                  🎲 <strong>Cơ chế tự động:</strong> Khi bắt đầu, hệ thống sẽ <strong>random ngẫu nhiên</strong> phe Đỏ và phe Đen giữa 2 kỳ thủ!
+                </div>
+
+                <!-- Referee Start Match Action Button -->
+                <div id="referee-start-box" style="display:none; margin-top:8px;">
+                  <button id="btn-referee-start" class="btn-lan-action primary pulse-animation">
+                    🎬 Trọng Tài: Bắt Đầu Trận Đấu (Random Phe)
+                  </button>
+                </div>
+              </div>
+
+              <!-- Referee In-Game Control Panel (Visible to referee during active match) -->
+              <div id="referee-control-panel" class="referee-control-panel" style="display:none;">
+                <div class="referee-panel-header">
+                  <span>⚖️ BAN TRỌNG TÀI ĐIỀU HÀNH</span>
+                </div>
+                <div class="referee-actions-grid">
+                  <button id="btn-ref-pause" class="btn-ref-action pause">
+                    ⏸️ Tạm Dừng
+                  </button>
+                  <button id="btn-ref-win-red" class="btn-ref-action win-red">
+                    🚩 Xử Đỏ Thắng
+                  </button>
+                  <button id="btn-ref-win-black" class="btn-ref-action win-black">
+                    🚩 Xử Đen Thắng
+                  </button>
+                  <button id="btn-ref-draw" class="btn-ref-action draw">
+                    🤝 Xử Hòa
+                  </button>
+                </div>
+                <div class="referee-msg-box">
+                  <input type="text" id="input-referee-msg" placeholder="Nhập nhắc nhở kỳ thủ..." class="lan-input" style="font-size:0.8rem;">
+                  <button id="btn-send-ref-msg" class="btn-lan-action" style="padding:4px 8px;">📢 Gửi</button>
+                </div>
+                <div class="referee-quick-pills">
+                  <button class="quick-pill" data-msg="⚠️ Trọng tài nhắc nhở: Chạm quân phải đi!">Chạm quân phải đi</button>
+                  <button class="quick-pill" data-msg="⏱️ Nhắc nhở: Sắp hết thời gian suy nghĩ!">Sắp hết giờ</button>
+                  <button class="quick-pill" data-msg="⚠️ Đề nghị hai kỳ thủ giữ trật tự và nghiêm túc!">Giữ trật tự</button>
                 </div>
               </div>
 
@@ -207,6 +376,54 @@
                 <option value="jade">Thạch Ngọc Bích</option>
                 <option value="modern">Tối Giản Đêm (Modern Dark)</option>
               </select>
+            </div>
+
+            <!-- Timer / Clock Settings -->
+            <div class="control-group timer-settings-card">
+              <div class="timer-card-header">
+                <label for="select-timer-preset">⏱️ Đồng Hồ Bấm Giờ Thi Đấu:</label>
+                <span id="timer-status-badge" class="timer-status-badge running">Đang chạy</span>
+              </div>
+              <select id="select-timer-preset" class="select-control">
+                <option value="600-60" selected>⏱️ 10 Phút (Nước 60s) - Tiêu Chuẩn</option>
+                <option value="300-30">⚡ 5 Phút (Nước 30s) - Cờ Chớp</option>
+                <option value="900-90">🏆 15 Phút (Nước 90s) - Giải Đấu</option>
+                <option value="180-15">🔥 3 Phút (Nước 15s) - Siêu Chớp</option>
+                <option value="custom">⚙️ Tùy chỉnh phút & giây...</option>
+                <option value="none">⏳ Tắt đồng hồ (Không giới hạn)</option>
+              </select>
+
+              <div id="custom-timer-inputs" class="custom-timer-inputs" style="display: none;">
+                <div class="custom-timer-row">
+                  <div class="custom-timer-col">
+                    <span class="custom-timer-lbl">Tổng giờ/bên:</span>
+                    <div class="custom-input-wrap">
+                      <input type="number" id="input-custom-min" min="1" max="180" value="10" class="mini-input">
+                      <span>phút</span>
+                    </div>
+                  </div>
+                  <div class="custom-timer-col">
+                    <span class="custom-timer-lbl">Mỗi nước đi:</span>
+                    <div class="custom-input-wrap">
+                      <input type="number" id="input-custom-sec" min="5" max="300" value="60" class="mini-input">
+                      <span>giây</span>
+                    </div>
+                  </div>
+                </div>
+                <button type="button" id="btn-apply-custom-timer" class="btn-game" style="font-size: 0.8rem; padding: 6px 12px; margin-top: 4px;">
+                  ✓ Áp Dụng Cài Đặt
+                </button>
+              </div>
+
+              <div class="timer-controls-row">
+                <button type="button" id="btn-timer-toggle-pause" class="btn-timer-ctl" title="Tạm dừng hoặc Tiếp tục đồng hồ">
+                  <span id="timer-pause-icon">⏸️</span>
+                  <span id="timer-pause-text">Tạm Dừng Giờ</span>
+                </button>
+                <button type="button" id="btn-timer-reset" class="btn-timer-ctl reset" title="Đặt lại thời gian về ban đầu">
+                  <span>🔄 Đặt Lại</span>
+                </button>
+              </div>
             </div>
 
             <div class="action-buttons" style="margin-top: 8px;">

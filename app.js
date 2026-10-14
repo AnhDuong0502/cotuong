@@ -35,10 +35,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Board Flip State
   let isBoardFlipped = false;
+  const boardContainer = document.getElementById('board-container');
   function setBoardFlip(flipped) {
     isBoardFlipped = flipped;
     if (boardWrapper) {
       boardWrapper.classList.toggle('flipped', isBoardFlipped);
+    }
+    if (boardContainer) {
+      boardContainer.classList.toggle('flipped', isBoardFlipped);
     }
   }
   function toggleBoardFlip() {
@@ -57,6 +61,46 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnJoinRoom = document.getElementById('btn-join-room');
   const lanStatusBanner = document.getElementById('lan-status-banner');
 
+  // LAN Tournament & Referee Elements
+  const lanSetupSection = document.getElementById('lan-setup-section');
+  const lanActiveRoom = document.getElementById('lan-active-room');
+  const tabRoomTournament = document.getElementById('tab-room-tournament');
+  const tabRoomNormal = document.getElementById('tab-room-normal');
+  const creatorRoleGroup = document.getElementById('creator-role-group');
+  const joinRoleWrapper = document.getElementById('join-role-wrapper');
+  const roomTypeBadge = document.getElementById('room-type-badge');
+  const displayRoomId = document.getElementById('display-room-id');
+  const btnLeaveRoom = document.getElementById('btn-leave-room');
+  const statusPlayer1 = document.getElementById('status-player1');
+  const statusPlayer2 = document.getElementById('status-player2');
+  const statusReferee = document.getElementById('status-referee');
+  const slotPlayer1 = document.getElementById('slot-player1');
+  const slotPlayer2 = document.getElementById('slot-player2');
+  const slotReferee = document.getElementById('slot-referee');
+  const refereeStartBox = document.getElementById('referee-start-box');
+  const btnRefereeStart = document.getElementById('btn-referee-start');
+  const refereeControlPanel = document.getElementById('referee-control-panel');
+  const btnRefPause = document.getElementById('btn-ref-pause');
+  const btnRefWinRed = document.getElementById('btn-ref-win-red');
+  const btnRefWinBlack = document.getElementById('btn-ref-win-black');
+  const btnRefDraw = document.getElementById('btn-ref-draw');
+  const inputRefereeMsg = document.getElementById('input-referee-msg');
+  const btnSendRefMsg = document.getElementById('btn-send-ref-msg');
+  const boardPauseOverlay = document.getElementById('board-pause-overlay');
+  const gameToast = document.getElementById('game-toast');
+
+  // Toast notification helper
+  let toastTimer = null;
+  function showToast(msg, type = 'gold', duration = 3800) {
+    if (!gameToast) return;
+    clearTimeout(toastTimer);
+    gameToast.textContent = msg;
+    gameToast.className = `game-toast show ${type}`;
+    toastTimer = setTimeout(() => {
+      gameToast.className = 'game-toast';
+    }, duration);
+  }
+
   // Quick switch views (Boss Key)
   const viewChess = document.getElementById('view-chess');
   const viewAlternate = document.getElementById('view-alternate');
@@ -71,8 +115,76 @@ document.addEventListener('DOMContentLoaded', () => {
   // LAN Multiplayer State
   let ws = null;
   let lanRoomId = null;
-  let myLanRole = null; // 'red' or 'black'
+  let myLanRole = null; // 'red', 'black', or 'referee'
   let isLanConnected = false;
+  let isMatchPaused = false;
+  let selectedRoomType = 'tournament'; // 'tournament' or 'normal'
+
+  // Room type selection tabs
+  if (tabRoomTournament && tabRoomNormal) {
+    tabRoomTournament.addEventListener('click', () => {
+      selectedRoomType = 'tournament';
+      tabRoomTournament.classList.add('active');
+      tabRoomNormal.classList.remove('active');
+      if (creatorRoleGroup) creatorRoleGroup.style.display = 'flex';
+      if (joinRoleWrapper) joinRoleWrapper.style.display = 'flex';
+    });
+
+    tabRoomNormal.addEventListener('click', () => {
+      selectedRoomType = 'normal';
+      tabRoomNormal.classList.add('active');
+      tabRoomTournament.classList.remove('active');
+      if (creatorRoleGroup) creatorRoleGroup.style.display = 'none';
+      if (joinRoleWrapper) joinRoleWrapper.style.display = 'none';
+    });
+  }
+
+  // Update room lobby status
+  function updateRoomLobbyUI(state) {
+    if (!state) return;
+    if (lanSetupSection) lanSetupSection.style.display = 'none';
+    if (lanActiveRoom) lanActiveRoom.style.display = 'flex';
+
+    if (displayRoomId) displayRoomId.textContent = state.roomId;
+    if (roomTypeBadge) {
+      roomTypeBadge.textContent = state.roomType === 'tournament' ? '🏆 THI ĐẤU' : '⚔️ PHÒNG THƯỜNG';
+    }
+
+    // Slots status
+    if (statusPlayer1 && slotPlayer1) {
+      statusPlayer1.textContent = state.hasPlayer1 ? '🟢 Đã vào sẵn sàng' : '⏳ Đang chờ...';
+      slotPlayer1.classList.toggle('filled', state.hasPlayer1);
+    }
+    if (statusPlayer2 && slotPlayer2) {
+      statusPlayer2.textContent = state.hasPlayer2 ? '🟢 Đã vào sẵn sàng' : '⏳ Đang chờ...';
+      slotPlayer2.classList.toggle('filled', state.hasPlayer2);
+    }
+    if (slotReferee && statusReferee) {
+      if (state.roomType === 'tournament') {
+        slotReferee.style.display = 'flex';
+        statusReferee.textContent = state.hasReferee ? '🟢 Đã có mặt' : '⏳ Đang chờ...';
+        slotReferee.classList.toggle('filled', state.hasReferee);
+      } else {
+        slotReferee.style.display = 'none';
+      }
+    }
+
+    // Referee Start button
+    if (myLanRole === 'referee' && state.hasPlayer1 && state.hasPlayer2 && !state.gameStarted) {
+      if (refereeStartBox) refereeStartBox.style.display = 'block';
+    } else {
+      if (refereeStartBox) refereeStartBox.style.display = 'none';
+    }
+  }
+
+  // Leave room button
+  if (btnLeaveRoom) {
+    btnLeaveRoom.addEventListener('click', () => {
+      if (confirm('Bạn có chắc chắn muốn rời phòng?')) {
+        window.location.reload();
+      }
+    });
+  }
 
   // Fetch host LAN info to display
   function fetchLanInfo() {
@@ -115,42 +227,123 @@ document.addEventListener('DOMContentLoaded', () => {
         switch (data.type) {
           case 'ROOM_CREATED':
             lanRoomId = data.roomId;
-            myLanRole = 'red';
-            setBoardFlip(false);
+            myLanRole = data.role;
+            updateRoomLobbyUI(data.roomState);
             lanStatusBanner.className = 'lan-status-banner waiting';
-            lanStatusBanner.innerHTML = `🏠 Mã phòng của bạn: <strong style="font-size:1.15rem; color:#f59e0b;">${lanRoomId}</strong><br>Đang chờ bạn bè cùng Wi-Fi vào phòng...`;
+            lanStatusBanner.innerHTML = `🏠 Mã phòng: <strong style="font-size:1.15rem; color:#f59e0b;">${lanRoomId}</strong><br>Bạn là: <strong>${data.role === 'referee' ? '⚖️ Trọng Tài' : '🥊 Kỳ Thủ 1'}</strong>. Đang chờ người chơi...`;
+            showToast(`🏠 Đã tạo phòng ${lanRoomId}!`, 'gold');
             break;
 
           case 'ROOM_JOINED':
             lanRoomId = data.roomId;
-            myLanRole = 'black';
-            setBoardFlip(true); // Opponent playing Black gets flipped perspective
+            myLanRole = data.role;
+            updateRoomLobbyUI(data.roomState);
             lanStatusBanner.className = 'lan-status-banner waiting';
-            lanStatusBanner.innerHTML = `Đã vào phòng <strong>${lanRoomId}</strong>. Bạn là bên <strong>Quân Đen</strong> (Bàn cờ đã tự động xoay ngược).`;
+            lanStatusBanner.innerHTML = `Đã vào phòng <strong>${lanRoomId}</strong> với vai trò: <strong>${data.role === 'referee' ? '⚖️ Trọng Tài' : '🥊 Kỳ Thủ'}</strong>.`;
+            showToast(`Đã vào phòng ${lanRoomId}!`, 'gold');
+            break;
+
+          case 'ROOM_STATE_UPDATE':
+            updateRoomLobbyUI(data.roomState);
+            break;
+
+          case 'READY_TO_START':
+            showToast(data.message || 'Đã đủ 2 kỳ thủ! Trọng tài có thể bấm Bắt đầu.', 'green', 5000);
+            if (refereeStartBox && myLanRole === 'referee') {
+              refereeStartBox.style.display = 'block';
+            }
             break;
 
           case 'GAME_START':
             isLanConnected = true;
+            myLanRole = data.role; // 'red', 'black', or 'referee'
+
             if (myLanRole === 'black') {
               setBoardFlip(true);
-            } else {
+              lanStatusBanner.className = 'lan-status-banner connected';
+              lanStatusBanner.innerHTML = `🟢 <strong>Trận đấu bắt đầu!</strong><br>🎲 Bạn: <strong>ĐEN (Đi sau - Bàn cờ tự động xoay)</strong>`;
+              showToast('🎲 ĐÃ RANDOM PHE: BẠN CẦM QUÂN ĐEN (ĐI SAU)!', 'gold', 4500);
+            } else if (myLanRole === 'red') {
               setBoardFlip(false);
+              lanStatusBanner.className = 'lan-status-banner connected';
+              lanStatusBanner.innerHTML = `🟢 <strong>Trận đấu bắt đầu!</strong><br>🎲 Bạn: <strong>ĐỎ (Đi trước)</strong>`;
+              showToast('🎲 ĐÃ RANDOM PHE: BẠN CẦM QUÂN ĐỎ (ĐI TRƯỚC)!', 'red', 4500);
+            } else if (myLanRole === 'referee') {
+              setBoardFlip(false);
+              if (refereeControlPanel) refereeControlPanel.style.display = 'flex';
+              if (refereeStartBox) refereeStartBox.style.display = 'none';
+              lanStatusBanner.className = 'lan-status-banner connected';
+              lanStatusBanner.innerHTML = `⚖️ <strong>Đang điều hành trận đấu</strong><br>Kỳ thủ 1: <strong>${data.p1Assigned === 'red' ? 'Đỏ' : 'Đen'}</strong> • Kỳ thủ 2: <strong>${data.p2Assigned === 'red' ? 'Đỏ' : 'Đen'}</strong>`;
+              showToast('🎲 TRỌNG TÀI: ĐÃ RANDOM PHE VÀ BẮT ĐẦU TRẬN ĐẤU!', 'gold', 4500);
             }
-            lanStatusBanner.className = 'lan-status-banner connected';
-            lanStatusBanner.innerHTML = `🟢 <strong>Đã kết nối 2 người chơi!</strong><br>Phòng: <strong>${lanRoomId}</strong> • Bạn: <strong>${myLanRole === 'red' ? 'ĐỎ (Đi trước)' : 'ĐEN (Đi sau - Bàn cờ xoay)'}</strong>`;
+
+            if (boardPauseOverlay) boardPauseOverlay.classList.remove('active');
+            isMatchPaused = false;
             game.reset();
             renderBoard();
             break;
 
-          case 'OPPONENT_MOVED':
+          case 'MATCH_PAUSED':
+            isMatchPaused = data.paused;
+            timerPaused = data.paused;
+            if (boardPauseOverlay) {
+              boardPauseOverlay.classList.toggle('active', data.paused);
+            }
+            if (btnRefPause) {
+              btnRefPause.textContent = data.paused ? '▶️ Tiếp Tục' : '⏸️ Tạm Dừng';
+            }
+            if (typeof updateClockUI === 'function') updateClockUI();
+            showToast(data.paused ? '⏸️ Trận đấu đang tạm dừng theo lệnh của Trọng tài!' : '▶️ Trọng tài cho phép trận đấu tiếp tục!', 'gold', 3500);
+            break;
+
+          case 'TIMEOUT_FORFEIT': {
+            const loser = data.color;
+            const winner = loser === 'red' ? 'black' : 'red';
+            game.isGameOver = true;
+            game.winner = winner;
+            window.xiangqiAudio.playTimeout();
+            const loserName = loser === 'red' ? 'Bên ĐỎ (帥)' : 'Bên ĐEN (將)';
+            const winnerName = winner === 'red' ? 'Bên ĐỎ (帥)' : 'Bên ĐEN (將)';
+            modalWinnerTitle.textContent = `⏰ HẾT THỜI GIAN THI ĐẤU!`;
+            modalWinnerDesc.textContent = `${loserName} đã hết thời gian thi đấu! ${winnerName} GIÀNH CHIẾN THẮNG!`;
+            modalGameOver.classList.add('active');
+            showToast(`⏰ ${loserName} hết giờ! ${winnerName} CHIẾN THẮNG!`, 'gold', 5000);
+            if (typeof updateClockUI === 'function') updateClockUI();
+            break;
+          }
+
+          case 'REFEREE_JUDGED':
+            let winnerTitle = '';
+            if (data.winner === 'red') {
+              winnerTitle = '🏆 BÊN ĐỎ CHIẾN THẮNG!';
+            } else if (data.winner === 'black') {
+              winnerTitle = '🏆 BÊN ĐEN CHIẾN THẮNG!';
+            } else {
+              winnerTitle = '🤝 VÁN CỜ HÒA!';
+            }
+            modalWinnerTitle.textContent = winnerTitle;
+            modalWinnerDesc.textContent = `⚖️ Phán quyết trọng tài: ${data.reason}`;
+            modalGameOver.classList.add('active');
+            showToast(winnerTitle, 'gold', 5000);
+            break;
+
+          case 'REFEREE_MESSAGE':
+            showToast(`⚖️ Trọng tài nhắc nhở: ${data.text}`, 'gold', 5500);
+            break;
+
+          case 'OPPONENT_MOVED': {
+            const prevTurn = game.currentTurn;
             game.makeMove(data.from, data.to);
+            if (typeof onMoveMade === 'function') onMoveMade(prevTurn);
             renderBoard();
             if (game.isGameOver) {
               showGameOverModal();
             }
             break;
+          }
 
           case 'UNDO_REQUESTED': {
+            if (myLanRole === 'referee') break;
             const accept = window.confirm('Đối thủ muốn xin đi lại nước cờ. Bạn có đồng ý không?');
             ws.send(JSON.stringify({ type: 'RESPOND_UNDO', accepted: accept }));
             if (accept) {
@@ -161,28 +354,31 @@ document.addEventListener('DOMContentLoaded', () => {
             break;
           }
 
+          case 'UNDO_REQUESTED_INFO':
+            showToast('ℹ️ Một bên đang xin đi lại nước cờ...', 'gold', 2500);
+            break;
+
           case 'UNDO_RESPONSE':
             if (data.accepted) {
               game.undo();
               game.undo();
               renderBoard();
-              alert('Đối thủ đã đồng ý cho bạn đi lại nước cờ!');
+              showToast('✅ Đối thủ đã đồng ý cho bạn đi lại!', 'green');
             } else {
-              alert('Đối thủ từ chối yêu cầu đi lại nước cờ.');
+              showToast('❌ Đối thủ từ chối yêu cầu đi lại nước cờ.', 'red');
             }
             break;
 
           case 'ROOM_GAME_RESTARTED':
             game.reset();
             modalGameOver.classList.remove('active');
+            if (boardPauseOverlay) boardPauseOverlay.classList.remove('active');
+            isMatchPaused = false;
             renderBoard();
             break;
 
-          case 'OPPONENT_LEFT':
-            isLanConnected = false;
-            lanStatusBanner.className = 'lan-status-banner';
-            lanStatusBanner.innerHTML = `⚠️ ${data.message || 'Đối thủ đã ngắt kết nối hoặc rời phòng.'}`;
-            alert('Đối thủ đã rời phòng hoặc mất kết nối!');
+          case 'USER_LEFT':
+            showToast(`⚠️ ${data.message || 'Một thành viên đã rời phòng!'}`, 'red', 4000);
             break;
 
           case 'ERROR':
@@ -269,9 +465,24 @@ document.addEventListener('DOMContentLoaded', () => {
   function setupPeerEvents(conn) {
     conn.on('data', (data) => {
       if (data.type === 'MAKE_MOVE') {
+        const prevTurn = game.currentTurn;
         game.makeMove(data.from, data.to);
+        if (typeof onMoveMade === 'function') onMoveMade(prevTurn);
         renderBoard();
         if (game.isGameOver) showGameOverModal();
+      } else if (data.type === 'TIMEOUT_FORFEIT') {
+        const loser = data.color;
+        const winner = loser === 'red' ? 'black' : 'red';
+        game.isGameOver = true;
+        game.winner = winner;
+        window.xiangqiAudio.playTimeout();
+        const loserName = loser === 'red' ? 'Bên ĐỎ (帥)' : 'Bên ĐEN (將)';
+        const winnerName = winner === 'red' ? 'Bên ĐỎ (帥)' : 'Bên ĐEN (將)';
+        modalWinnerTitle.textContent = `⏰ HẾT THỜI GIAN THI ĐẤU!`;
+        modalWinnerDesc.textContent = `${loserName} đã hết thời gian thi đấu! ${winnerName} GIÀNH CHIẾN THẮNG!`;
+        modalGameOver.classList.add('active');
+        showToast(`⏰ ${loserName} hết giờ! ${winnerName} CHIẾN THẮNG!`, 'gold', 5000);
+        if (typeof updateClockUI === 'function') updateClockUI();
       } else if (data.type === 'REQUEST_UNDO') {
         const accept = window.confirm('Đối thủ muốn xin đi lại nước cờ. Bạn có đồng ý không?');
         conn.send({ type: 'RESPOND_UNDO', accepted: accept });
@@ -305,8 +516,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Create room button
   btnCreateRoom.addEventListener('click', () => {
+    let creatorRole = 'player';
+    if (selectedRoomType === 'tournament') {
+      const checkedRole = document.querySelector('input[name="creator-role"]:checked');
+      if (checkedRole) creatorRole = checkedRole.value;
+    }
+
     if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'CREATE_ROOM' }));
+      ws.send(JSON.stringify({
+        type: 'CREATE_ROOM',
+        roomType: selectedRoomType,
+        creatorRole: creatorRole
+      }));
     } else if (typeof Peer !== 'undefined') {
       createPeerRoom();
     } else {
@@ -321,14 +542,386 @@ document.addEventListener('DOMContentLoaded', () => {
       alert('Vui lòng nhập mã phòng (4 chữ số)!');
       return;
     }
+
+    let joinRole = 'player';
+    const checkedJoinRole = document.querySelector('input[name="join-role"]:checked');
+    if (checkedJoinRole) joinRole = checkedJoinRole.value;
+
     if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'JOIN_ROOM', roomId: code }));
+      ws.send(JSON.stringify({
+        type: 'JOIN_ROOM',
+        roomId: code,
+        requestedRole: joinRole
+      }));
     } else if (typeof Peer !== 'undefined') {
       joinPeerRoom(code);
     } else {
       alert('Chưa kết nối được máy chủ!');
     }
   });
+
+  // Referee Match Controls
+  if (btnRefereeStart) {
+    btnRefereeStart.addEventListener('click', () => {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'START_MATCH' }));
+      }
+    });
+  }
+
+  if (btnRefPause) {
+    btnRefPause.addEventListener('click', () => {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'REFEREE_PAUSE' }));
+      }
+    });
+  }
+
+  if (btnRefWinRed) {
+    btnRefWinRed.addEventListener('click', () => {
+      const reason = prompt('Nhập lý do xử ĐỎ Thắng (hoặc để trống):', 'Trọng tài xử Thắng cho bên Đỏ');
+      if (reason !== null && ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'REFEREE_JUDGE', winner: 'red', reason }));
+      }
+    });
+  }
+
+  if (btnRefWinBlack) {
+    btnRefWinBlack.addEventListener('click', () => {
+      const reason = prompt('Nhập lý do xử ĐEN Thắng (hoặc để trống):', 'Trọng tài xử Thắng cho bên Đen');
+      if (reason !== null && ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'REFEREE_JUDGE', winner: 'black', reason }));
+      }
+    });
+  }
+
+  if (btnRefDraw) {
+    btnRefDraw.addEventListener('click', () => {
+      const reason = prompt('Nhập lý do xử HÒA (hoặc để trống):', 'Trọng tài công bố kết quả Hòa');
+      if (reason !== null && ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'REFEREE_JUDGE', winner: 'draw', reason }));
+      }
+    });
+  }
+
+  function sendRefereeCustomMsg(text) {
+    if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
+    ws.send(JSON.stringify({ type: 'REFEREE_MESSAGE', text }));
+  }
+
+  if (btnSendRefMsg && inputRefereeMsg) {
+    btnSendRefMsg.addEventListener('click', () => {
+      const text = inputRefereeMsg.value.trim();
+      if (text) {
+        sendRefereeCustomMsg(text);
+        inputRefereeMsg.value = '';
+      }
+    });
+    inputRefereeMsg.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const text = inputRefereeMsg.value.trim();
+        if (text) {
+          sendRefereeCustomMsg(text);
+          inputRefereeMsg.value = '';
+        }
+      }
+    });
+  }
+
+  document.querySelectorAll('.quick-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      const msg = pill.getAttribute('data-msg');
+      if (msg) sendRefereeCustomMsg(msg);
+    });
+  });
+
+  // ================= CHESS CLOCK & TIMER LOGIC =================
+  const clockBarBlack = document.getElementById('clock-bar-black');
+  const clockBarRed = document.getElementById('clock-bar-red');
+  const timeDisplayBlack = document.getElementById('time-black');
+  const timeDisplayRed = document.getElementById('time-red');
+  const turnTimeValBlack = document.getElementById('turntime-val-black');
+  const turnTimeValRed = document.getElementById('turntime-val-red');
+  const statusTagBlack = document.getElementById('status-tag-black');
+  const statusTagRed = document.getElementById('status-tag-red');
+  const nameDisplayBlack = document.getElementById('name-black');
+  const nameDisplayRed = document.getElementById('name-red');
+
+  const selectTimerPreset = document.getElementById('select-timer-preset');
+  const customTimerInputs = document.getElementById('custom-timer-inputs');
+  const inputCustomMin = document.getElementById('input-custom-min');
+  const inputCustomSec = document.getElementById('input-custom-sec');
+  const btnApplyCustomTimer = document.getElementById('btn-apply-custom-timer');
+  const btnTimerTogglePause = document.getElementById('btn-timer-toggle-pause');
+  const btnTimerReset = document.getElementById('btn-timer-reset');
+  const timerPauseIcon = document.getElementById('timer-pause-icon');
+  const timerPauseText = document.getElementById('timer-pause-text');
+  const timerStatusBadge = document.getElementById('timer-status-badge');
+
+  let timerTotalSeconds = 600; // 10 minutes default
+  let timerMoveSeconds = 60;   // 60 seconds per move default
+  let timerEnabled = true;
+  let timerPaused = false;
+  let timerStarted = false;
+
+  let timeLeft = {
+    red: 600,
+    black: 600
+  };
+  let turnTimeLeft = {
+    red: 60,
+    black: 60
+  };
+
+  let clockInterval = null;
+
+  function formatTime(sec) {
+    if (sec < 0) sec = 0;
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  }
+
+  function updateClockUI() {
+    if (!clockBarBlack || !clockBarRed) return;
+
+    if (!timerEnabled) {
+      clockBarBlack.style.display = 'none';
+      clockBarRed.style.display = 'none';
+      if (timerStatusBadge) {
+        timerStatusBadge.className = 'timer-status-badge disabled';
+        timerStatusBadge.textContent = 'Đã tắt';
+      }
+      return;
+    }
+
+    clockBarBlack.style.display = 'flex';
+    clockBarRed.style.display = 'flex';
+
+    if (timeDisplayRed) timeDisplayRed.textContent = formatTime(timeLeft.red);
+    if (timeDisplayBlack) timeDisplayBlack.textContent = formatTime(timeLeft.black);
+
+    if (turnTimeValRed) turnTimeValRed.textContent = `${turnTimeLeft.red}s`;
+    if (turnTimeValBlack) turnTimeValBlack.textContent = `${turnTimeLeft.black}s`;
+
+    const isRedTurn = game.currentTurn === 'red';
+
+    // Active state classes
+    clockBarRed.classList.toggle('active-turn', isRedTurn && !game.isGameOver);
+    clockBarBlack.classList.toggle('active-turn', !isRedTurn && !game.isGameOver);
+
+    // Paused state class
+    clockBarRed.classList.toggle('is-paused', timerPaused);
+    clockBarBlack.classList.toggle('is-paused', timerPaused);
+
+    // Low time warning (< 30s total or < 10s per move)
+    clockBarRed.classList.toggle('low-time', (timeLeft.red <= 30 || turnTimeLeft.red <= 10) && isRedTurn && timerStarted);
+    clockBarBlack.classList.toggle('low-time', (timeLeft.black <= 30 || turnTimeLeft.black <= 10) && !isRedTurn && timerStarted);
+
+    const turnTimeRedEl = document.getElementById('turntime-red');
+    const turnTimeBlackEl = document.getElementById('turntime-black');
+    if (turnTimeRedEl) turnTimeRedEl.classList.toggle('warning', turnTimeLeft.red <= 10 && isRedTurn && timerStarted);
+    if (turnTimeBlackEl) turnTimeBlackEl.classList.toggle('warning', turnTimeLeft.black <= 10 && !isRedTurn && timerStarted);
+
+    // Status badges
+    if (game.isGameOver) {
+      if (statusTagRed) statusTagRed.textContent = 'Kết thúc';
+      if (statusTagBlack) statusTagBlack.textContent = 'Kết thúc';
+    } else if (timerPaused) {
+      if (statusTagRed) statusTagRed.textContent = 'Tạm dừng ⏸️';
+      if (statusTagBlack) statusTagBlack.textContent = 'Tạm dừng ⏸️';
+    } else {
+      if (statusTagRed) statusTagRed.textContent = isRedTurn ? 'Đang đi...' : 'Chờ lượt';
+      if (statusTagBlack) statusTagBlack.textContent = !isRedTurn ? 'Đang đi...' : 'Chờ lượt';
+    }
+
+    // Player names based on game mode
+    if (game.gameMode === 'pve') {
+      if (nameDisplayRed) nameDisplayRed.textContent = '👤 Bạn (Đỏ)';
+      if (nameDisplayBlack) nameDisplayBlack.textContent = `🤖 Máy AI (${game.aiDifficulty === 'easy' ? 'Dễ' : 'Tiêu Chuẩn'})`;
+    } else if (game.gameMode === 'pvp') {
+      if (nameDisplayRed) nameDisplayRed.textContent = '🔴 Kỳ Thủ Đỏ';
+      if (nameDisplayBlack) nameDisplayBlack.textContent = '⚫ Kỳ Thủ Đen';
+    } else if (game.gameMode === 'lan') {
+      if (myLanRole === 'red') {
+        if (nameDisplayRed) nameDisplayRed.textContent = '👤 Bạn (Đỏ)';
+        if (nameDisplayBlack) nameDisplayBlack.textContent = '🥊 Đối Thủ (Đen)';
+      } else if (myLanRole === 'black') {
+        if (nameDisplayBlack) nameDisplayBlack.textContent = '👤 Bạn (Đen)';
+        if (nameDisplayRed) nameDisplayRed.textContent = '🥊 Đối Thủ (Đỏ)';
+      } else {
+        if (nameDisplayRed) nameDisplayRed.textContent = '🔴 Kỳ Thủ 1';
+        if (nameDisplayBlack) nameDisplayBlack.textContent = '⚫ Kỳ Thủ 2';
+      }
+    }
+
+    // Timer controls header badge
+    if (timerStatusBadge) {
+      if (timerPaused) {
+        timerStatusBadge.className = 'timer-status-badge paused';
+        timerStatusBadge.textContent = 'Tạm dừng ⏸️';
+      } else if (timerStarted) {
+        timerStatusBadge.className = 'timer-status-badge running';
+        timerStatusBadge.textContent = 'Đang chạy ⏱️';
+      } else {
+        timerStatusBadge.className = 'timer-status-badge running';
+        timerStatusBadge.textContent = 'Chờ bắt đầu';
+      }
+    }
+  }
+
+  function handleClockTick() {
+    if (!timerEnabled || timerPaused || !timerStarted || game.isGameOver) return;
+
+    const activeColor = game.currentTurn;
+
+    timeLeft[activeColor]--;
+    turnTimeLeft[activeColor]--;
+
+    // Sound alert when low on time
+    if (turnTimeLeft[activeColor] <= 5 || timeLeft[activeColor] <= 10) {
+      window.xiangqiAudio.playTimeWarning();
+    } else if (turnTimeLeft[activeColor] <= 10 || timeLeft[activeColor] <= 20) {
+      window.xiangqiAudio.playTick();
+    }
+
+    // Check timeout / flag fall
+    if (timeLeft[activeColor] <= 0 || turnTimeLeft[activeColor] <= 0) {
+      timeLeft[activeColor] = Math.max(0, timeLeft[activeColor]);
+      turnTimeLeft[activeColor] = Math.max(0, turnTimeLeft[activeColor]);
+      handleTimeoutForfeit(activeColor);
+    }
+
+    updateClockUI();
+  }
+
+  function handleTimeoutForfeit(loserColor) {
+    if (game.isGameOver) return;
+
+    game.isGameOver = true;
+    const winnerColor = loserColor === 'red' ? 'black' : 'red';
+    game.winner = winnerColor;
+
+    window.xiangqiAudio.playTimeout();
+
+    const loserLabel = loserColor === 'red' ? 'Bên ĐỎ (帥)' : 'Bên ĐEN (將)';
+    const winnerLabel = winnerColor === 'red' ? 'Bên ĐỎ (帥)' : 'Bên ĐEN (將)';
+
+    modalWinnerTitle.textContent = `⏰ HẾT THỜI GIAN THI ĐẤU!`;
+    modalWinnerDesc.textContent = `${loserLabel} đã hết thời gian quy định! ${winnerLabel} GIÀNH CHIẾN THẮNG!`;
+    modalGameOver.classList.add('active');
+
+    showToast(`⏰ HẾT GIỜ! ${winnerLabel} CHIẾN THẮNG!`, 'red', 5000);
+
+    // Notify online / LAN / PeerJS opponents if active
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({
+        type: 'TIMEOUT_FORFEIT',
+        color: loserColor
+      }));
+    } else if (peerConn && peerConn.open) {
+      peerConn.send({
+        type: 'TIMEOUT_FORFEIT',
+        color: loserColor
+      });
+    }
+
+    updateClockUI();
+  }
+
+  function onMoveMade(prevTurn) {
+    if (!timerEnabled || game.isGameOver) return;
+
+    if (!timerStarted) {
+      timerStarted = true;
+    }
+
+    // Reset move timer for the player who just moved
+    turnTimeLeft[prevTurn] = timerMoveSeconds;
+
+    updateClockUI();
+  }
+
+  function resetTimer() {
+    timeLeft.red = timerTotalSeconds;
+    timeLeft.black = timerTotalSeconds;
+    turnTimeLeft.red = timerMoveSeconds;
+    turnTimeLeft.black = timerMoveSeconds;
+    timerStarted = false;
+    timerPaused = false;
+
+    if (btnTimerTogglePause) {
+      if (timerPauseIcon) timerPauseIcon.textContent = '⏸️';
+      if (timerPauseText) timerPauseText.textContent = 'Tạm Dừng Giờ';
+      btnTimerTogglePause.classList.remove('paused');
+    }
+
+    updateClockUI();
+  }
+
+  function setTimerPreset(presetValue) {
+    if (presetValue === 'none') {
+      timerEnabled = false;
+      if (customTimerInputs) customTimerInputs.style.display = 'none';
+    } else if (presetValue === 'custom') {
+      timerEnabled = true;
+      if (customTimerInputs) customTimerInputs.style.display = 'block';
+    } else {
+      timerEnabled = true;
+      if (customTimerInputs) customTimerInputs.style.display = 'none';
+      const [totalSec, moveSec] = presetValue.split('-').map(Number);
+      timerTotalSeconds = totalSec;
+      timerMoveSeconds = moveSec;
+      resetTimer();
+    }
+    updateClockUI();
+  }
+
+  if (selectTimerPreset) {
+    selectTimerPreset.addEventListener('change', (e) => {
+      setTimerPreset(e.target.value);
+    });
+  }
+
+  if (btnApplyCustomTimer) {
+    btnApplyCustomTimer.addEventListener('click', () => {
+      const mins = Math.max(1, parseInt(inputCustomMin.value, 10) || 10);
+      const secs = Math.max(5, parseInt(inputCustomSec.value, 10) || 60);
+      timerTotalSeconds = mins * 60;
+      timerMoveSeconds = secs;
+      resetTimer();
+      showToast(`⏱️ Đã áp dụng: ${mins} phút / ${secs}s mỗi nước`, 'green', 2500);
+    });
+  }
+
+  if (btnTimerTogglePause) {
+    btnTimerTogglePause.addEventListener('click', () => {
+      if (!timerEnabled || game.isGameOver) return;
+      timerPaused = !timerPaused;
+      if (timerPaused) {
+        if (timerPauseIcon) timerPauseIcon.textContent = '▶️';
+        if (timerPauseText) timerPauseText.textContent = 'Tiếp Tục Giờ';
+        btnTimerTogglePause.classList.add('paused');
+        showToast('⏸️ Đồng hồ bấm giờ đã tạm dừng', 'gold', 2000);
+      } else {
+        if (timerPauseIcon) timerPauseIcon.textContent = '⏸️';
+        if (timerPauseText) timerPauseText.textContent = 'Tạm Dừng Giờ';
+        btnTimerTogglePause.classList.remove('paused');
+        showToast('▶️ Đồng hồ bấm giờ tiếp tục chạy', 'green', 2000);
+      }
+      updateClockUI();
+    });
+  }
+
+  if (btnTimerReset) {
+    btnTimerReset.addEventListener('click', () => {
+      resetTimer();
+      showToast('🔄 Đã đặt lại thời gian ban đầu', 'gold', 2000);
+    });
+  }
+
+  // Start 1-second interval loop
+  clockInterval = setInterval(handleClockTick, 1000);
 
   // Render board pieces and markers
   function renderBoard() {
@@ -411,13 +1004,23 @@ document.addEventListener('DOMContentLoaded', () => {
   function handlePieceClick(r, c) {
     if (game.isGameOver || isAiThinking) return;
 
+    if (isMatchPaused) {
+      showToast('⏸️ Trận đấu đang bị Trọng tài tạm dừng!', 'red', 2000);
+      return;
+    }
+
+    if (myLanRole === 'referee') {
+      showToast('⚖️ Bạn là Trọng tài (chỉ theo dõi và điều hành)', 'gold', 2000);
+      return;
+    }
+
     const piece = game.board[r][c];
     if (!piece) return;
 
     // In LAN mode
     if (game.gameMode === 'lan') {
       if (!isLanConnected) {
-        alert('Vui lòng tạo phòng và chờ đối thủ cùng Wi-Fi vào phòng trước khi bắt đầu!');
+        alert('Vui lòng tạo phòng hoặc vào phòng để bắt đầu!');
         return;
       }
       if (piece.color !== myLanRole && !game.selected) {
@@ -454,7 +1057,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function executeMove(from, to) {
-    if (isAiThinking) return;
+    if (isAiThinking || isMatchPaused) return;
 
     // LAN mode: send move over WebSocket or WebRTC P2P
     if (game.gameMode === 'lan') {
@@ -473,7 +1076,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
+    const prevTurn = game.currentTurn;
     game.makeMove(from, to);
+    if (typeof onMoveMade === 'function') onMoveMade(prevTurn);
     renderBoard();
 
     // Check game over
@@ -500,7 +1105,9 @@ document.addEventListener('DOMContentLoaded', () => {
       isAiThinking = false;
 
       if (best) {
+        const prevTurn = game.currentTurn;
         game.makeMove(best.from, best.to);
+        if (typeof onMoveMade === 'function') onMoveMade(prevTurn);
         renderBoard();
 
         if (game.isGameOver) {
@@ -523,6 +1130,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (game.gameMode === 'lan') {
       if (!isLanConnected) {
         turnBadge.textContent = 'Chờ kết nối phòng';
+        turnBadge.style.color = '#f59e0b';
+      } else if (myLanRole === 'referee') {
+        turnBadge.textContent = '⚖️ Trọng Tài Điều Hành';
         turnBadge.style.color = '#f59e0b';
       } else if (game.currentTurn === myLanRole) {
         turnBadge.textContent = '⚡ ĐẾN LƯỢT BẠN!';
@@ -580,6 +1190,10 @@ document.addEventListener('DOMContentLoaded', () => {
         historyBox.appendChild(item);
       });
       historyBox.scrollTop = historyBox.scrollHeight;
+    }
+
+    if (typeof updateClockUI === 'function') {
+      updateClockUI();
     }
   }
 
@@ -682,11 +1296,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
       game.reset();
+      if (typeof resetTimer === 'function') resetTimer();
       renderBoard();
       return;
     }
 
+    if (game.gameMode === 'pvp') {
+      const p1IsRed = Math.random() < 0.5;
+      showToast(p1IsRed ? '🎲 Bốc thăm: Người chơi 1 cầm ĐỎ (Đi trước)!' : '🎲 Bốc thăm: Người chơi 2 cầm ĐỎ (Đi trước)!', 'gold', 3500);
+    }
+
     game.reset();
+    if (typeof resetTimer === 'function') resetTimer();
     isAiThinking = false;
     renderBoard();
   }
