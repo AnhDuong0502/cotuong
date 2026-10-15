@@ -4,8 +4,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const game = new window.XiangqiGame();
   const ai = new window.XiangqiAI(game);
 
-  // Set default game mode to LAN
-  game.gameMode = 'lan';
+  // Set default game mode to PvE (Player vs AI) for instant playability
+  game.gameMode = 'pve';
 
   // DOM Elements
   const boardInteractive = document.getElementById('board-interactive');
@@ -23,6 +23,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const selectNames = document.getElementById('select-names');
   const selectTheme = document.getElementById('select-theme');
 
+  const btnStartGame = document.getElementById('btn-start-game');
+  const btnQuickStart = document.getElementById('btn-quick-start');
   const btnNewGame = document.getElementById('btn-new-game');
   const btnFlipBoard = document.getElementById('btn-flip-board');
   const btnUndo = document.getElementById('btn-undo');
@@ -79,6 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const slotReferee = document.getElementById('slot-referee');
   const refereeStartBox = document.getElementById('referee-start-box');
   const btnRefereeStart = document.getElementById('btn-referee-start');
+  const btnLanStartMatch = document.getElementById('btn-lan-start-match');
   const refereeControlPanel = document.getElementById('referee-control-panel');
   const btnRefPause = document.getElementById('btn-ref-pause');
   const btnRefWinRed = document.getElementById('btn-ref-win-red');
@@ -169,11 +172,24 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // Referee Start button
-    if (myLanRole === 'referee' && state.hasPlayer1 && state.hasPlayer2 && !state.gameStarted) {
-      if (refereeStartBox) refereeStartBox.style.display = 'block';
-    } else {
+    // Start buttons in lobby
+    const lanRoomStartBox = document.getElementById('lan-room-start-box');
+    if (state.gameStarted) {
       if (refereeStartBox) refereeStartBox.style.display = 'none';
+      if (lanRoomStartBox) lanRoomStartBox.style.display = 'none';
+    } else {
+      if (state.roomType === 'tournament') {
+        if (myLanRole === 'referee') {
+          if (refereeStartBox) refereeStartBox.style.display = (state.hasPlayer1 && state.hasPlayer2) ? 'block' : 'none';
+          if (lanRoomStartBox) lanRoomStartBox.style.display = 'none';
+        } else {
+          if (refereeStartBox) refereeStartBox.style.display = 'none';
+          if (lanRoomStartBox) lanRoomStartBox.style.display = (state.hasPlayer1 && state.hasPlayer2) ? 'block' : 'none';
+        }
+      } else {
+        if (refereeStartBox) refereeStartBox.style.display = 'none';
+        if (lanRoomStartBox) lanRoomStartBox.style.display = (state.hasPlayer1 && state.hasPlayer2) ? 'block' : 'none';
+      }
     }
   }
 
@@ -255,32 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
             break;
 
           case 'GAME_START':
-            isLanConnected = true;
-            myLanRole = data.role; // 'red', 'black', or 'referee'
-
-            if (myLanRole === 'black') {
-              setBoardFlip(true);
-              lanStatusBanner.className = 'lan-status-banner connected';
-              lanStatusBanner.innerHTML = `🟢 <strong>Trận đấu bắt đầu!</strong><br>🎲 Bạn: <strong>ĐEN (Đi sau - Bàn cờ tự động xoay)</strong>`;
-              showToast('🎲 ĐÃ RANDOM PHE: BẠN CẦM QUÂN ĐEN (ĐI SAU)!', 'gold', 4500);
-            } else if (myLanRole === 'red') {
-              setBoardFlip(false);
-              lanStatusBanner.className = 'lan-status-banner connected';
-              lanStatusBanner.innerHTML = `🟢 <strong>Trận đấu bắt đầu!</strong><br>🎲 Bạn: <strong>ĐỎ (Đi trước)</strong>`;
-              showToast('🎲 ĐÃ RANDOM PHE: BẠN CẦM QUÂN ĐỎ (ĐI TRƯỚC)!', 'red', 4500);
-            } else if (myLanRole === 'referee') {
-              setBoardFlip(false);
-              if (refereeControlPanel) refereeControlPanel.style.display = 'flex';
-              if (refereeStartBox) refereeStartBox.style.display = 'none';
-              lanStatusBanner.className = 'lan-status-banner connected';
-              lanStatusBanner.innerHTML = `⚖️ <strong>Đang điều hành trận đấu</strong><br>Kỳ thủ 1: <strong>${data.p1Assigned === 'red' ? 'Đỏ' : 'Đen'}</strong> • Kỳ thủ 2: <strong>${data.p2Assigned === 'red' ? 'Đỏ' : 'Đen'}</strong>`;
-              showToast('🎲 TRỌNG TÀI: ĐÃ RANDOM PHE VÀ BẮT ĐẦU TRẬN ĐẤU!', 'gold', 4500);
-            }
-
-            if (boardPauseOverlay) boardPauseOverlay.classList.remove('active');
-            isMatchPaused = false;
-            game.reset();
-            renderBoard();
+            handleGameStartPayload(data);
             break;
 
           case 'MATCH_PAUSED':
@@ -397,33 +388,112 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   initWebSocket();
 
-  // PeerJS WebRTC P2P Support (For Vercel deployment where WebSocket is unavailable)
-  let peer = null;
-  let peerConn = null;
+  // Unified Handler for Game Start Payload (WS & PeerJS)
+  function handleGameStartPayload(data) {
+    game.gameMode = 'lan';
+    if (selectMode) selectMode.value = 'lan';
+    isLanConnected = true;
+    myLanRole = data.role; // 'red', 'black', or 'referee'
 
+    if (myLanRole === 'black') {
+      setBoardFlip(true);
+      lanStatusBanner.className = 'lan-status-banner connected';
+      lanStatusBanner.innerHTML = `🟢 <strong>Trận đấu bắt đầu!</strong><br>🎲 Bạn: <strong>ĐEN (Đi sau - Bàn cờ tự động xoay)</strong>`;
+      showToast('🎲 ĐÃ RANDOM PHE: BẠN CẦM QUÂN ĐEN (ĐI SAU)!', 'gold', 4500);
+    } else if (myLanRole === 'red') {
+      setBoardFlip(false);
+      lanStatusBanner.className = 'lan-status-banner connected';
+      lanStatusBanner.innerHTML = `🟢 <strong>Trận đấu bắt đầu!</strong><br>🎲 Bạn: <strong>ĐỎ (Đi trước)</strong>`;
+      showToast('🎲 ĐÃ RANDOM PHE: BẠN CẦM QUÂN ĐỎ (ĐI TRƯỚC)!', 'red', 4500);
+    } else if (myLanRole === 'referee') {
+      setBoardFlip(false);
+      if (refereeControlPanel) refereeControlPanel.style.display = 'flex';
+      if (refereeStartBox) refereeStartBox.style.display = 'none';
+      const lanRoomStartBox = document.getElementById('lan-room-start-box');
+      if (lanRoomStartBox) lanRoomStartBox.style.display = 'none';
+      lanStatusBanner.className = 'lan-status-banner connected';
+      lanStatusBanner.innerHTML = `⚖️ <strong>Đang điều hành trận đấu</strong><br>Kỳ thủ 1: <strong>${data.p1Assigned === 'red' ? 'Đỏ' : 'Đen'}</strong> • Kỳ thủ 2: <strong>${data.p2Assigned === 'red' ? 'Đỏ' : 'Đen'}</strong>`;
+      showToast('🎲 TRỌNG TÀI: ĐÃ RANDOM PHE VÀ BẮT ĐẦU TRẬN ĐẤU!', 'gold', 4500);
+    }
+
+    if (boardPauseOverlay) boardPauseOverlay.classList.remove('active');
+    isMatchPaused = false;
+    game.reset();
+    if (typeof resetTimer === 'function') resetTimer();
+    timerStarted = true;
+    renderBoard();
+  }
+
+  // PeerJS WebRTC P2P Support (Multi-Client Mesh for GitHub Pages & Vercel)
+  let peer = null;
+  let peerConn = null;          // For Client: connection to Host
+  let isPeerHost = false;        // True if this user created the room
+  let peerClients = [];         // For Host: list of connected client connections
+  let peerRoomState = null;     // Host-side room state object
+
+  // Helper: Broadcast message to all connected peers
+  function broadcastPeerMessage(msg) {
+    peerClients.forEach(c => {
+      if (c && c.open) {
+        c.send(msg);
+      }
+    });
+  }
+
+  // Helper: Send LAN / P2P message to all appropriate targets
+  function sendLanMessage(data) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify(data));
+    } else if (isPeerHost) {
+      broadcastPeerMessage(data);
+    } else if (peerConn && peerConn.open) {
+      peerConn.send(data);
+    }
+  }
+
+  // Host: Create PeerJS Room
   function createPeerRoom() {
     const code = Math.floor(1000 + Math.random() * 9000).toString();
     const fullId = 'cotuong-p2p-' + code;
+
+    isPeerHost = true;
+    peerClients = [];
+    lanRoomId = code;
+    game.gameMode = 'lan';
+
+    let creatorRole = 'player';
+    if (selectedRoomType === 'tournament') {
+      const checkedRole = document.querySelector('input[name="creator-role"]:checked');
+      if (checkedRole) creatorRole = checkedRole.value;
+    }
+    myLanRole = creatorRole;
+
+    peerRoomState = {
+      roomId: code,
+      roomType: selectedRoomType, // 'tournament' or 'normal'
+      creatorRole: creatorRole,
+      hasPlayer1: creatorRole === 'player',
+      hasPlayer2: false,
+      hasReferee: creatorRole === 'referee',
+      gameStarted: false
+    };
 
     if (peer) peer.destroy();
     peer = new Peer(fullId);
 
     peer.on('open', () => {
-      lanRoomId = code;
-      myLanRole = 'red';
-      setBoardFlip(false);
+      updateRoomLobbyUI(peerRoomState);
       lanStatusBanner.className = 'lan-status-banner waiting';
-      lanStatusBanner.innerHTML = `🏠 Mã phòng (Vercel P2P): <strong style="font-size:1.15rem; color:#f59e0b;">${code}</strong><br>Đang chờ đối thủ vào phòng...`;
+      if (creatorRole === 'referee') {
+        lanStatusBanner.innerHTML = `🏠 Phòng thi đấu: <strong style="font-size:1.15rem; color:#f59e0b;">${code}</strong><br>Bạn là: <strong>⚖️ Trọng Tài</strong>. Đang chờ 2 kỳ thủ vào phòng...`;
+      } else {
+        lanStatusBanner.innerHTML = `🏠 Mã phòng: <strong style="font-size:1.15rem; color:#f59e0b;">${code}</strong><br>Bạn là: <strong>🥊 Kỳ Thủ 1</strong>. Đang chờ người chơi...`;
+      }
+      showToast(`🏠 Đã tạo phòng ${code}!`, 'gold');
     });
 
     peer.on('connection', (conn) => {
-      peerConn = conn;
-      setupPeerEvents(conn);
-      isLanConnected = true;
-      lanStatusBanner.className = 'lan-status-banner connected';
-      lanStatusBanner.innerHTML = `🟢 <strong>Đã kết nối đối thủ!</strong><br>Phòng: <strong>${code}</strong> • Bạn: <strong>ĐỎ (Đi trước)</strong>`;
-      game.reset();
-      renderBoard();
+      handleHostIncomingConnection(conn);
     });
 
     peer.on('error', (err) => {
@@ -435,8 +505,119 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Host: Handle Incoming Client Connection
+  function handleHostIncomingConnection(conn) {
+    peerClients.push(conn);
+    setupPeerEvents(conn);
+
+    conn.on('data', (data) => {
+      if (data.type === 'CLIENT_JOIN') {
+        let assignedRole = 'player';
+        if (peerRoomState.roomType === 'tournament') {
+          if (data.requestedRole === 'referee' && !peerRoomState.hasReferee) {
+            assignedRole = 'referee';
+            peerRoomState.hasReferee = true;
+          } else if (!peerRoomState.hasPlayer1) {
+            assignedRole = 'player1';
+            peerRoomState.hasPlayer1 = true;
+          } else if (!peerRoomState.hasPlayer2) {
+            assignedRole = 'player2';
+            peerRoomState.hasPlayer2 = true;
+          } else {
+            conn.send({ type: 'ERROR', message: 'Phòng đã đủ thành viên!' });
+            return;
+          }
+        } else {
+          // Normal room
+          if (!peerRoomState.hasPlayer1) {
+            assignedRole = 'player1';
+            peerRoomState.hasPlayer1 = true;
+          } else if (!peerRoomState.hasPlayer2) {
+            assignedRole = 'player2';
+            peerRoomState.hasPlayer2 = true;
+          } else {
+            conn.send({ type: 'ERROR', message: 'Phòng đã đủ 2 kỳ thủ!' });
+            return;
+          }
+        }
+
+        conn.assignedRole = assignedRole;
+
+        // Send confirmation to client
+        conn.send({
+          type: 'ROOM_JOINED',
+          roomId: peerRoomState.roomId,
+          roomType: peerRoomState.roomType,
+          role: assignedRole,
+          roomState: peerRoomState
+        });
+
+        // Broadcast updated state to all connected peers
+        broadcastPeerMessage({
+          type: 'ROOM_STATE_UPDATE',
+          roomState: peerRoomState
+        });
+
+        // Update Host UI
+        updateRoomLobbyUI(peerRoomState);
+
+        // Notify ready
+        if (peerRoomState.hasPlayer1 && peerRoomState.hasPlayer2) {
+          showToast('🟢 Đã đủ 2 kỳ thủ trong phòng! Có thể bấm Bắt đầu trận đấu.', 'green', 4000);
+          if (peerRoomState.roomType === 'normal') {
+            setTimeout(() => {
+              if (peerRoomState && !peerRoomState.gameStarted) {
+                startPeerMatch();
+              }
+            }, 600);
+          }
+        }
+      } else if (data.type === 'START_MATCH') {
+        startPeerMatch();
+      } else if (data.type === 'MAKE_MOVE') {
+        // Forward move to other clients
+        peerClients.forEach(c => {
+          if (c !== conn && c.open) c.send(data);
+        });
+        // Apply move on Host board
+        const prevTurn = game.currentTurn;
+        game.makeMove(data.from, data.to);
+        if (typeof onMoveMade === 'function') onMoveMade(prevTurn);
+        renderBoard();
+        if (game.isGameOver) showGameOverModal();
+      } else if (data.type === 'TIMEOUT_FORFEIT' || data.type === 'REFEREE_PAUSE' || data.type === 'REFEREE_JUDGE' || data.type === 'REFEREE_MESSAGE' || data.type === 'REQUEST_UNDO' || data.type === 'RESPOND_UNDO') {
+        // Forward event to other clients
+        peerClients.forEach(c => {
+          if (c !== conn && c.open) c.send(data);
+        });
+      }
+    });
+
+    conn.on('close', () => {
+      peerClients = peerClients.filter(c => c !== conn);
+      if (conn.assignedRole === 'player1') peerRoomState.hasPlayer1 = false;
+      if (conn.assignedRole === 'player2') peerRoomState.hasPlayer2 = false;
+      if (conn.assignedRole === 'referee') peerRoomState.hasReferee = false;
+      updateRoomLobbyUI(peerRoomState);
+      broadcastPeerMessage({
+        type: 'ROOM_STATE_UPDATE',
+        roomState: peerRoomState
+      });
+      showToast('⚠️ Một người chơi đã rời phòng.', 'gold', 3000);
+    });
+  }
+
+  // Client: Join PeerJS Room
   function joinPeerRoom(code) {
     const fullId = 'cotuong-p2p-' + code;
+    isPeerHost = false;
+    lanRoomId = code;
+    game.gameMode = 'lan';
+
+    let joinRole = 'player';
+    const checkedJoinRole = document.querySelector('input[name="join-role"]:checked');
+    if (checkedJoinRole) joinRole = checkedJoinRole.value;
+
     if (peer) peer.destroy();
     peer = new Peer();
 
@@ -446,30 +627,113 @@ document.addEventListener('DOMContentLoaded', () => {
       setupPeerEvents(conn);
 
       conn.on('open', () => {
-        lanRoomId = code;
-        myLanRole = 'black';
-        setBoardFlip(true);
-        isLanConnected = true;
-        lanStatusBanner.className = 'lan-status-banner connected';
-        lanStatusBanner.innerHTML = `🟢 <strong>Đã kết nối vào phòng!</strong><br>Phòng: <strong>${code}</strong> • Bạn: <strong>ĐEN (Đi sau - Bàn cờ xoay)</strong>`;
-        game.reset();
-        renderBoard();
+        conn.send({
+          type: 'CLIENT_JOIN',
+          requestedRole: joinRole
+        });
       });
     });
 
     peer.on('error', (err) => {
-      alert('Không tìm thấy phòng ' + code + '. Hãy kiểm tra lại mã phòng!');
+      showToast('⚠️ Không tìm thấy phòng ' + code + '. Hãy kiểm tra lại mã phòng!', 'red', 4500);
     });
   }
 
+  // Host: Trigger P2P Match Start
+  function startPeerMatch() {
+    if (!isPeerHost) {
+      if (peerConn && peerConn.open) {
+        peerConn.send({ type: 'START_MATCH' });
+      }
+      return;
+    }
+
+    if (!peerRoomState.hasPlayer1 || !peerRoomState.hasPlayer2) {
+      showToast('⚠️ Cần đủ 2 kỳ thủ để bắt đầu trận đấu!', 'gold', 3500);
+      return;
+    }
+
+    peerRoomState.gameStarted = true;
+
+    // Randomize Red and Black (50/50)
+    const isP1Red = Math.random() < 0.5;
+    const p1Color = isP1Red ? 'red' : 'black';
+    const p2Color = isP1Red ? 'black' : 'red';
+
+    let hostRole = 'referee';
+    if (peerRoomState.creatorRole === 'player') {
+      hostRole = p1Color; // Host is Player 1
+    }
+
+    // Send GAME_START to all connected clients
+    peerClients.forEach(conn => {
+      if (!conn.open) return;
+      let role = 'referee';
+      if (conn.assignedRole === 'player1') role = p1Color;
+      else if (conn.assignedRole === 'player2') role = p2Color;
+
+      conn.send({
+        type: 'GAME_START',
+        role: role,
+        roomType: peerRoomState.roomType,
+        p1Assigned: p1Color,
+        p2Assigned: p2Color
+      });
+    });
+
+    // Host handles its own game start
+    handleGameStartPayload({
+      type: 'GAME_START',
+      role: hostRole,
+      roomType: peerRoomState.roomType,
+      p1Assigned: p1Color,
+      p2Assigned: p2Color
+    });
+  }
+
+  // Setup Peer Events for Client (and incoming data)
   function setupPeerEvents(conn) {
     conn.on('data', (data) => {
-      if (data.type === 'MAKE_MOVE') {
+      if (data.type === 'ROOM_JOINED') {
+        lanRoomId = data.roomId;
+        myLanRole = data.role;
+        game.gameMode = 'lan';
+        updateRoomLobbyUI(data.roomState);
+        lanStatusBanner.className = 'lan-status-banner waiting';
+        lanStatusBanner.innerHTML = `Đã vào phòng <strong>${lanRoomId}</strong> với vai trò: <strong>${data.role === 'referee' ? '⚖️ Trọng Tài' : (data.role === 'player1' ? '🥊 Kỳ Thủ 1' : '🥊 Kỳ Thủ 2')}</strong>.`;
+        showToast(`Đã vào phòng ${lanRoomId}!`, 'gold');
+      } else if (data.type === 'ROOM_STATE_UPDATE') {
+        updateRoomLobbyUI(data.roomState);
+      } else if (data.type === 'GAME_START') {
+        handleGameStartPayload(data);
+      } else if (data.type === 'MAKE_MOVE') {
         const prevTurn = game.currentTurn;
         game.makeMove(data.from, data.to);
         if (typeof onMoveMade === 'function') onMoveMade(prevTurn);
         renderBoard();
         if (game.isGameOver) showGameOverModal();
+      } else if (data.type === 'REFEREE_PAUSE') {
+        isMatchPaused = data.paused;
+        timerPaused = data.paused;
+        if (boardPauseOverlay) boardPauseOverlay.classList.toggle('active', data.paused);
+        if (btnRefPause) btnRefPause.textContent = data.paused ? '▶️ Tiếp Tục' : '⏸️ Tạm Dừng';
+        if (typeof updateClockUI === 'function') updateClockUI();
+        showToast(data.paused ? '⏸️ Trận đấu đang tạm dừng theo lệnh của Trọng tài!' : '▶️ Trọng tài cho phép trận đấu tiếp tục!', 'gold', 3500);
+      } else if (data.type === 'REFEREE_JUDGE') {
+        game.isGameOver = true;
+        game.winner = data.winner;
+        if (data.winner === 'draw') {
+          modalWinnerTitle.textContent = '🤝 KẾT QUẢ HÒA!';
+          modalWinnerDesc.textContent = data.reason || 'Trọng tài đã tuyên bố kết quả Hòa cho ván cờ.';
+        } else {
+          const winName = data.winner === 'red' ? 'Bên ĐỎ (帥)' : 'Bên ĐEN (將)';
+          modalWinnerTitle.textContent = `🏆 ${winName} CHIẾN THẮNG!`;
+          modalWinnerDesc.textContent = data.reason || `Trọng tài xử thắng cho ${winName}.`;
+        }
+        modalGameOver.classList.add('active');
+        showToast(`⚖️ Phán quyết trọng tài: ${modalWinnerTitle.textContent}`, 'gold', 5000);
+      } else if (data.type === 'REFEREE_MESSAGE') {
+        showToast(`📢 Trọng tài: ${data.text}`, 'gold', 6000);
       } else if (data.type === 'TIMEOUT_FORFEIT') {
         const loser = data.color;
         const winner = loser === 'red' ? 'black' : 'red';
@@ -485,7 +749,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (typeof updateClockUI === 'function') updateClockUI();
       } else if (data.type === 'REQUEST_UNDO') {
         const accept = window.confirm('Đối thủ muốn xin đi lại nước cờ. Bạn có đồng ý không?');
-        conn.send({ type: 'RESPOND_UNDO', accepted: accept });
+        sendLanMessage({ type: 'RESPOND_UNDO', accepted: accept });
         if (accept) {
           game.undo();
           game.undo();
@@ -496,14 +760,16 @@ document.addEventListener('DOMContentLoaded', () => {
           game.undo();
           game.undo();
           renderBoard();
-          alert('Đối thủ đã đồng ý cho bạn đi lại!');
+          showToast('✅ Đối thủ đã đồng ý cho bạn đi lại nước cờ!', 'green', 3500);
         } else {
-          alert('Đối thủ từ chối yêu cầu đi lại.');
+          showToast('❌ Đối thủ từ chối yêu cầu đi lại.', 'red', 3500);
         }
       } else if (data.type === 'RESTART_ROOM_GAME') {
         game.reset();
         modalGameOver.classList.remove('active');
         renderBoard();
+      } else if (data.type === 'ERROR') {
+        showToast(data.message || 'Có lỗi xảy ra!', 'red', 4000);
       }
     });
 
@@ -531,7 +797,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (typeof Peer !== 'undefined') {
       createPeerRoom();
     } else {
-      alert('Chưa kết nối được máy chủ!');
+      showToast('⚠️ Chưa kết nối được máy chủ!', 'red', 4000);
     }
   });
 
@@ -539,7 +805,7 @@ document.addEventListener('DOMContentLoaded', () => {
   btnJoinRoom.addEventListener('click', () => {
     const code = (inputRoomCode.value || '').trim();
     if (!code) {
-      alert('Vui lòng nhập mã phòng (4 chữ số)!');
+      showToast('⚠️ Vui lòng nhập mã phòng (4 chữ số)!', 'gold', 3500);
       return;
     }
 
@@ -556,7 +822,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (typeof Peer !== 'undefined') {
       joinPeerRoom(code);
     } else {
-      alert('Chưa kết nối được máy chủ!');
+      showToast('⚠️ Chưa kết nối được máy chủ!', 'red', 4000);
     }
   });
 
@@ -565,23 +831,29 @@ document.addEventListener('DOMContentLoaded', () => {
     btnRefereeStart.addEventListener('click', () => {
       if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: 'START_MATCH' }));
+      } else if (isPeerHost || (peerConn && peerConn.open)) {
+        startPeerMatch();
       }
     });
   }
 
   if (btnRefPause) {
     btnRefPause.addEventListener('click', () => {
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'REFEREE_PAUSE' }));
-      }
+      const nextPaused = !isMatchPaused;
+      isMatchPaused = nextPaused;
+      timerPaused = nextPaused;
+      if (boardPauseOverlay) boardPauseOverlay.classList.toggle('active', nextPaused);
+      if (btnRefPause) btnRefPause.textContent = nextPaused ? '▶️ Tiếp Tục' : '⏸️ Tạm Dừng';
+      sendLanMessage({ type: 'REFEREE_PAUSE', paused: nextPaused });
+      if (typeof updateClockUI === 'function') updateClockUI();
     });
   }
 
   if (btnRefWinRed) {
     btnRefWinRed.addEventListener('click', () => {
       const reason = prompt('Nhập lý do xử ĐỎ Thắng (hoặc để trống):', 'Trọng tài xử Thắng cho bên Đỏ');
-      if (reason !== null && ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'REFEREE_JUDGE', winner: 'red', reason }));
+      if (reason !== null) {
+        sendLanMessage({ type: 'REFEREE_JUDGE', winner: 'red', reason });
       }
     });
   }
@@ -589,8 +861,8 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnRefWinBlack) {
     btnRefWinBlack.addEventListener('click', () => {
       const reason = prompt('Nhập lý do xử ĐEN Thắng (hoặc để trống):', 'Trọng tài xử Thắng cho bên Đen');
-      if (reason !== null && ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'REFEREE_JUDGE', winner: 'black', reason }));
+      if (reason !== null) {
+        sendLanMessage({ type: 'REFEREE_JUDGE', winner: 'black', reason });
       }
     });
   }
@@ -598,15 +870,15 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnRefDraw) {
     btnRefDraw.addEventListener('click', () => {
       const reason = prompt('Nhập lý do xử HÒA (hoặc để trống):', 'Trọng tài công bố kết quả Hòa');
-      if (reason !== null && ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'REFEREE_JUDGE', winner: 'draw', reason }));
+      if (reason !== null) {
+        sendLanMessage({ type: 'REFEREE_JUDGE', winner: 'draw', reason });
       }
     });
   }
 
   function sendRefereeCustomMsg(text) {
-    if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
-    ws.send(JSON.stringify({ type: 'REFEREE_MESSAGE', text }));
+    if (!text) return;
+    sendLanMessage({ type: 'REFEREE_MESSAGE', text });
   }
 
   if (btnSendRefMsg && inputRefereeMsg) {
@@ -814,17 +1086,10 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast(`⏰ HẾT GIỜ! ${winnerLabel} CHIẾN THẮNG!`, 'red', 5000);
 
     // Notify online / LAN / PeerJS opponents if active
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({
-        type: 'TIMEOUT_FORFEIT',
-        color: loserColor
-      }));
-    } else if (peerConn && peerConn.open) {
-      peerConn.send({
-        type: 'TIMEOUT_FORFEIT',
-        color: loserColor
-      });
-    }
+    sendLanMessage({
+      type: 'TIMEOUT_FORFEIT',
+      color: loserColor
+    });
 
     updateClockUI();
   }
@@ -923,6 +1188,89 @@ document.addEventListener('DOMContentLoaded', () => {
   // Start 1-second interval loop
   clockInterval = setInterval(handleClockTick, 1000);
 
+  // ================= SPACEBAR MOVE CONFIRMATION LOGIC =================
+  let pendingMove = null;
+  const moveConfirmBanner = document.getElementById('move-confirm-banner');
+  const btnConfirmMove = document.getElementById('btn-confirm-move');
+  const btnCancelMove = document.getElementById('btn-cancel-move');
+
+  function stagePendingMove(from, to) {
+    if (isAiThinking || isMatchPaused || game.isGameOver) return;
+
+    if (pendingMove) {
+      cancelPendingMove(false);
+    }
+
+    const piece = game.board[from.r][from.c];
+    if (!piece) return;
+    const target = game.board[to.r][to.c];
+
+    pendingMove = {
+      from: { r: from.r, c: from.c },
+      to: { r: to.r, c: to.c },
+      piece: piece,
+      target: target
+    };
+
+    // Temporarily place on board to preview the move
+    game.board[to.r][to.c] = piece;
+    game.board[from.r][from.c] = null;
+    game.selected = null;
+    game.validMoves = [];
+
+    if (moveConfirmBanner) {
+      moveConfirmBanner.classList.add('show');
+    }
+
+    renderBoard();
+  }
+
+  function confirmPendingMove() {
+    if (!pendingMove) return;
+
+    const { from, to, piece, target } = pendingMove;
+    game.board[from.r][from.c] = piece;
+    game.board[to.r][to.c] = target;
+    pendingMove = null;
+
+    if (moveConfirmBanner) {
+      moveConfirmBanner.classList.remove('show');
+    }
+
+    executeMove(from, to);
+  }
+
+  function cancelPendingMove(rerender = true) {
+    if (!pendingMove) return;
+
+    const { from, to, piece, target } = pendingMove;
+    game.board[from.r][from.c] = piece;
+    game.board[to.r][to.c] = target;
+    pendingMove = null;
+
+    if (moveConfirmBanner) {
+      moveConfirmBanner.classList.remove('show');
+    }
+
+    if (rerender) {
+      renderBoard();
+    }
+  }
+
+  if (btnConfirmMove) {
+    btnConfirmMove.addEventListener('click', (e) => {
+      e.stopPropagation();
+      confirmPendingMove();
+    });
+  }
+
+  if (btnCancelMove) {
+    btnCancelMove.addEventListener('click', (e) => {
+      e.stopPropagation();
+      cancelPendingMove();
+    });
+  }
+
   // Render board pieces and markers
   function renderBoard() {
     boardInteractive.innerHTML = '';
@@ -937,6 +1285,9 @@ document.addEventListener('DOMContentLoaded', () => {
         pieceEl.className = `piece ${piece.color} ${game.namingStyle}`;
         if (game.selected && game.selected.r === r && game.selected.c === c) {
           pieceEl.classList.add('selected');
+        }
+        if (pendingMove && pendingMove.to.r === r && pendingMove.to.c === c) {
+          pieceEl.classList.add('pending-move-piece');
         }
 
         pieceEl.style.left = `${(c / 8) * 100}%`;
@@ -974,7 +1325,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         marker.addEventListener('click', (e) => {
           e.stopPropagation();
-          executeMove(game.selected, m);
+          stagePendingMove(game.selected, m);
         });
 
         boardInteractive.appendChild(marker);
@@ -1014,20 +1365,43 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    // If there is an active pending move and user clicks the pending piece, confirm it!
+    if (pendingMove) {
+      if (pendingMove.to.r === r && pendingMove.to.c === c) {
+        confirmPendingMove();
+        return;
+      } else {
+        cancelPendingMove(false);
+      }
+    }
+
     const piece = game.board[r][c];
     if (!piece) return;
 
     // In LAN mode
     if (game.gameMode === 'lan') {
       if (!isLanConnected) {
-        alert('Vui lòng tạo phòng hoặc vào phòng để bắt đầu!');
-        return;
-      }
-      if (piece.color !== myLanRole && !game.selected) {
-        return; // Cannot select opponent's pieces
-      }
-      if (game.currentTurn !== myLanRole && !game.selected) {
-        return; // Not your turn
+        if (lanRoomId) {
+          showToast('⏳ Đang trong phòng chờ ' + lanRoomId + '. Hãy đợi đủ người và bấm Bắt đầu trận đấu!', 'gold', 3000);
+          return;
+        }
+        // Only if user had no room at all and clicked a piece:
+        game.gameMode = 'pve';
+        if (selectMode) selectMode.value = 'pve';
+        if (lanPanel) lanPanel.style.display = 'none';
+        if (aiDiffGroup) aiDiffGroup.style.display = 'flex';
+        timerStarted = true;
+        showToast('🟢 Đã bắt đầu ván đấu với Máy AI! Lượt Đỏ đi trước.', 'green', 3500);
+      } else {
+        if (myLanRole === 'referee') {
+          return; // Referee only observes
+        }
+        if (piece.color !== myLanRole && !game.selected) {
+          return; // Cannot select opponent's pieces
+        }
+        if (game.currentTurn !== myLanRole && !game.selected) {
+          return; // Not your turn
+        }
       }
     }
 
@@ -1051,7 +1425,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Possible capture target clicked directly
       const isTarget = game.validMoves.some(m => m.r === r && m.c === c);
       if (isTarget) {
-        executeMove(game.selected, { r, c });
+        stagePendingMove(game.selected, { r, c });
       }
     }
   }
@@ -1061,19 +1435,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // LAN mode: send move over WebSocket or WebRTC P2P
     if (game.gameMode === 'lan') {
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({
-          type: 'MAKE_MOVE',
-          from,
-          to
-        }));
-      } else if (peerConn && peerConn.open) {
-        peerConn.send({
-          type: 'MAKE_MOVE',
-          from,
-          to
-        });
-      }
+      sendLanMessage({
+        type: 'MAKE_MOVE',
+        from,
+        to
+      });
     }
 
     const prevTurn = game.currentTurn;
@@ -1246,13 +1612,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Keyboard Shortcuts
   document.addEventListener('keydown', (e) => {
-    // Quick switch with Escape or 'Q'
+    // Space key to confirm pending move
+    if (e.code === 'Space' || e.key === ' ') {
+      if (pendingMove) {
+        e.preventDefault();
+        confirmPendingMove();
+        return;
+      }
+    }
+
+    // Quick switch with Escape or 'Q', or cancel pending move
     if (e.key === 'Escape' || e.key.toLowerCase() === 'q') {
+      if (pendingMove) {
+        e.preventDefault();
+        cancelPendingMove();
+        return;
+      }
       e.preventDefault();
       toggleView();
+    } else if (e.key.toLowerCase() === 's' && activeView === 'chess') {
+      if (pendingMove) cancelPendingMove();
+      startGame();
     } else if (e.key.toLowerCase() === 'z' && activeView === 'chess') {
+      if (pendingMove) cancelPendingMove();
       handleUndo();
     } else if (e.key.toLowerCase() === 'n' && activeView === 'chess') {
+      if (pendingMove) cancelPendingMove();
       startNewGame();
     } else if (e.key.toLowerCase() === 'f' && activeView === 'chess') {
       toggleBoardFlip();
@@ -1264,13 +1649,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (game.gameMode === 'lan') {
       if (!isLanConnected) return;
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'REQUEST_UNDO' }));
-        alert('Đã gửi yêu cầu xin đi lại tới đối thủ. Đang chờ phản hồi...');
-      } else if (peerConn && peerConn.open) {
-        peerConn.send({ type: 'REQUEST_UNDO' });
-        alert('Đã gửi yêu cầu xin đi lại tới đối thủ. Đang chờ phản hồi...');
-      }
+      sendLanMessage({ type: 'REQUEST_UNDO' });
+      showToast('Đã gửi yêu cầu xin đi lại tới đối thủ. Đang chờ phản hồi...', 'gold', 3500);
       return;
     }
 
@@ -1284,16 +1664,51 @@ document.addEventListener('DOMContentLoaded', () => {
     renderBoard();
   }
 
+  function startGame() {
+    modalGameOver.classList.remove('active');
+
+    if (lanRoomId || game.gameMode === 'lan') {
+      game.gameMode = 'lan';
+
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'START_MATCH' }));
+        return;
+      } else if (isPeerHost || (peerConn && peerConn.open)) {
+        startPeerMatch();
+        return;
+      } else if (!lanRoomId) {
+        game.gameMode = 'pve';
+        if (selectMode) selectMode.value = 'pve';
+        if (lanPanel) lanPanel.style.display = 'none';
+        if (aiDiffGroup) aiDiffGroup.style.display = 'flex';
+        showToast('🟢 Đã bắt đầu ván đấu với Máy AI! Bạn cầm quân ĐỎ (Đi trước).', 'green', 4000);
+      } else {
+        showToast('⏳ Chưa đủ kỳ thủ hoặc chưa kết nối xong để bắt đầu trận đấu!', 'gold', 3500);
+        return;
+      }
+    } else if (game.gameMode === 'pvp') {
+      const p1IsRed = Math.random() < 0.5;
+      showToast(p1IsRed ? '🎲 Bốc thăm: Người chơi 1 cầm ĐỎ (Đi trước)!' : '🎲 Bốc thăm: Người chơi 2 cầm ĐỎ (Đi trước)!', 'gold', 3500);
+    } else {
+      showToast('🟢 Ván đấu đã bắt đầu! Bạn cầm quân ĐỎ (Đi trước). Chúc bạn chơi vui vẻ!', 'green', 4000);
+    }
+
+    game.reset();
+    if (typeof resetTimer === 'function') resetTimer();
+    timerStarted = true;
+    isAiThinking = false;
+    if (window.xiangqiAudio && typeof window.xiangqiAudio.playMove === 'function') {
+      window.xiangqiAudio.playMove();
+    }
+    renderBoard();
+  }
+
   function startNewGame() {
     modalGameOver.classList.remove('active');
 
     if (game.gameMode === 'lan') {
       if (isLanConnected) {
-        if (ws && ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ type: 'RESTART_ROOM_GAME' }));
-        } else if (peerConn && peerConn.open) {
-          peerConn.send({ type: 'RESTART_ROOM_GAME' });
-        }
+        sendLanMessage({ type: 'RESTART_ROOM_GAME' });
       }
       game.reset();
       if (typeof resetTimer === 'function') resetTimer();
@@ -1312,9 +1727,13 @@ document.addEventListener('DOMContentLoaded', () => {
     renderBoard();
   }
 
+  if (btnStartGame) btnStartGame.addEventListener('click', startGame);
+  if (btnQuickStart) btnQuickStart.addEventListener('click', startGame);
+  if (btnLanStartMatch) btnLanStartMatch.addEventListener('click', startGame);
+  if (btnRefereeStart) btnRefereeStart.addEventListener('click', startGame);
   btnUndo.addEventListener('click', handleUndo);
   btnNewGame.addEventListener('click', startNewGame);
-  btnModalRestart.addEventListener('click', startNewGame);
+  btnModalRestart.addEventListener('click', startGame);
 
   // Sound toggle
   btnSound.addEventListener('click', () => {

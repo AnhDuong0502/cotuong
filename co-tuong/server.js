@@ -191,7 +191,7 @@ wss.on('connection', (ws) => {
           userRoomId = roomId;
 
           const roomType = data.roomType === 'tournament' ? 'tournament' : 'normal';
-          const creatorRole = data.creatorRole === 'referee' ? 'referee' : 'player';
+          const creatorRole = (roomType === 'tournament' && data.creatorRole === 'referee') ? 'referee' : 'player';
 
           const newRoom = {
             id: roomId,
@@ -232,7 +232,7 @@ wss.on('connection', (ws) => {
             return;
           }
 
-          const requestedRole = data.requestedRole || 'player';
+          const requestedRole = (room.type === 'tournament' && data.requestedRole === 'referee') ? 'referee' : 'player';
 
           if (requestedRole === 'referee') {
             if (room.type !== 'tournament') {
@@ -263,6 +263,14 @@ wss.on('connection', (ws) => {
             }));
 
             broadcastRoomState(room);
+
+            // If players already present in tournament, notify referee
+            if (room.player1 && room.player2) {
+              ws.send(JSON.stringify({
+                type: 'READY_TO_START',
+                message: 'Đã đủ 2 kỳ thủ! Trọng tài có thể bấm Bắt đầu trận đấu.'
+              }));
+            }
             return;
           }
 
@@ -282,8 +290,14 @@ wss.on('connection', (ws) => {
 
           if (!room.player1 || room.player1.readyState !== 1) {
             room.player1 = ws;
-          } else {
+          } else if (!room.player2 || room.player2.readyState !== 1) {
             room.player2 = ws;
+          } else {
+            ws.send(JSON.stringify({
+              type: 'ERROR',
+              message: 'Phòng này đã đủ 2 kỳ thủ tham gia!'
+            }));
+            return;
           }
 
           ws.send(JSON.stringify({
@@ -301,7 +315,7 @@ wss.on('connection', (ws) => {
             startMatch(room);
           } else if (room.type === 'tournament') {
             // In tournament mode, if both players are in, notify referee they can start
-            if (room.player1 && room.player2 && room.referee) {
+            if (room.player1 && room.player2 && room.referee && room.referee.readyState === 1) {
               room.referee.send(JSON.stringify({
                 type: 'READY_TO_START',
                 message: 'Đã đủ 2 kỳ thủ! Trọng tài có thể bấm Bắt đầu trận đấu.'
